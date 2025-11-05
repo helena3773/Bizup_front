@@ -124,7 +124,7 @@ export function OutOfStockTab() {
                       </TableRow>
                     ) : outOfStockItems.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                        <TableCell colSpan={7} className="text-center py-8 text-gray-100">
                           품절 상품이 없습니다.
                         </TableCell>
                       </TableRow>
@@ -179,8 +179,8 @@ export function OutOfStockTab() {
             </>
           ) : (
             <div className="text-center py-12">
-              <Package className="w-16 h-16 text-red-500 mx-auto mb-4" />
-              <p className="text-gray-600 text-xs">품절 상품이 없습니다.</p>
+              <Package className="w-16 h-16 text-red-700 mx-auto mb-4" />
+              <p className="text-red-700 text-sm">품절 상품이 없습니다.</p>
             </div>
           )}
         </CardContent>

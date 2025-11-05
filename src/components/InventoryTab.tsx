@@ -173,7 +173,7 @@ export function InventoryTab() {
         <CardHeader className="bg-gradient-to-r from-gray-50 to-white border-b border-gray-200">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-gray-800 flex items-center mb-6">
+              <CardTitle className="text-gray-800 flex items-center mb-6 gap-2">
                 <Package className="w-5 h-5" />
                 재고 관리
               </CardTitle>              
@@ -438,11 +438,6 @@ export function InventoryTab() {
                         <TableCell className="text-center">
                           <Badge 
                             variant={status.variant}
-                            className={
-                              status.text === '정상' ? 'bg-green-200 text-green-800 border-none' :
-                              status.text === '부족' ? 'bg-yellow-100 text-yellow-600 border-none' :
-                              'bg-red-200 text-red-600 border-none'
-                            }
                           >
                             {status.text}
                           </Badge>

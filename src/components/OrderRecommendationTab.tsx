@@ -38,11 +38,11 @@ export function OrderRecommendationTab() {
   const getPriorityBadge = (priority: string) => {
     switch (priority) {
       case 'high':
-        return <Badge variant="destructive" className="bg-red-200 text-red-600 border-none">높음</Badge>;
+        return <Badge variant="destructive">높음</Badge>;
       case 'medium':
-        return <Badge variant="default" className="bg-yellow-100 text-yellow-600 border-none">보통</Badge>;
+        return <Badge variant="default">보통</Badge>;
       case 'low':
-        return <Badge variant="secondary" className="bg-green-200 text-green-800 border-none">낮음</Badge>;
+        return <Badge variant="secondary">낮음</Badge>;
       default:
         return null;
     }
