@@ -1,4 +1,3 @@
-// API 클라이언트 유틸리티
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
 
@@ -31,7 +30,6 @@ class ApiClient {
         throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
       }
 
-      // 204 No Content 응답 처리
       if (response.status === 204) {
         return undefined as T;
       }
@@ -78,9 +76,6 @@ class ApiClient {
 
 export const api = new ApiClient(API_BASE_URL);
 
-// API 함수들
-
-// 재고 관리
 export interface InventoryItem {
   id: number;
   name: string;
@@ -128,7 +123,6 @@ export const inventoryApi = {
   delete: (id: number) => api.delete(`/inventory/${id}`),
 };
 
-// 발주 관리
 export interface OrderRecommendation {
   id: number;
   name: string;
@@ -174,7 +168,6 @@ export const orderApi = {
   create: (data: OrderCreate) => api.post<OrderResponse>('/orders', data),
 };
 
-// 품절 관리
 export interface OutOfStockItem {
   id: number;
   name: string;
@@ -192,7 +185,6 @@ export const outOfStockApi = {
     api.post(`/out-of-stock/${itemId}/restock?quantity=${quantity}`, {}),
 };
 
-// 직원 관리
 export interface Employee {
   id: number;
   name: string;
@@ -226,7 +218,6 @@ export const employeeApi = {
   delete: (id: number) => api.delete(`/employees/${id}`),
 };
 
-// 가게 설정
 export interface Store {
   id: number;
   name: string;
