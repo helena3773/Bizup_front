@@ -1,12 +1,8 @@
 ﻿import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Input } from './ui/input';
-import { Badge } from './ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import { Label } from './ui/label';
-import { Plus, Search, Edit, Package, Loader2, Trash2 } from 'lucide-react';
+import { Plus, Search, Edit2, Loader2, Trash2 } from 'lucide-react';
 import { inventoryApi, InventoryItem, InventoryStats } from '../lib/api';
 import { toast } from 'sonner';
 
@@ -24,26 +20,44 @@ export function InventoryTab() {
   const [newItem, setNewItem] = useState({
     name: '',
     category: '',
-    quantity: 0,
-    unit: '',
-    minQuantity: 0,
-    price: 0,
+    quantity: '',
+    minQuantity: '',
+    price: '',
   });
 
   const [editItem, setEditItem] = useState({
     name: '',
     category: '',
-    quantity: 0,
-    unit: '',
-    minQuantity: 0,
-    price: 0,
+    quantity: '',
+    minQuantity: '',
+    price: '',
   });
 
   // 재고 목록 로딩
   useEffect(() => {
     loadInventory();
     loadStats();
+  }, []);
+
+  // 검색어 변경 시 재고 목록 다시 로딩
+  useEffect(() => {
+    if (searchQuery !== undefined) {
+      loadInventory();
+    }
   }, [searchQuery]);
+
+  // 다이얼로그 열림 시 폼 데이터 초기화
+  useEffect(() => {
+    if (!isDialogOpen) {
+      setNewItem({ name: '', category: '', quantity: '', minQuantity: '', price: '' });
+    }
+  }, [isDialogOpen]);
+
+  useEffect(() => {
+    if (!isEditDialogOpen && editingItemId === null) {
+      setEditItem({ name: '', category: '', quantity: '', minQuantity: '', price: '' });
+    }
+  }, [isEditDialogOpen, editingItemId]);
 
   const loadInventory = async () => {
     try {
@@ -52,7 +66,7 @@ export function InventoryTab() {
       setInventory(data);
     } catch (error) {
       console.error('재고 목록 로딩 오류:', error);
-      toast.error('재고 목록 로딩 오류가 발생했습니다.');
+      toast.error('재고 목록을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.');
     } finally {
       setLoading(false);
     }
@@ -67,20 +81,16 @@ export function InventoryTab() {
     }
   };
 
-  const filteredInventory = inventory.filter(item =>
-    item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.category.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredInventory = inventory.filter(
+    (item) =>
+      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.category.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const getStockStatus = (quantity: number, minQuantity: number) => {
-    if (quantity === 0) return { text: '품절', variant: 'destructive' as const };
-    if (quantity <= minQuantity) return { text: '부족', variant: 'default' as const };
-    return { text: '정상', variant: 'secondary' as const };
-  };
-
-  const handleAddItem = async () => {
-    if (!newItem.name || !newItem.category || !newItem.unit) {
-      toast.error('재고 추가 필수 정보가 누락되었습니다.');
+  const handleAddItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newItem.name || !newItem.category) {
+      toast.error('필수 정보를 입력하고 다시 시도해 주세요.');
       return;
     }
 
@@ -89,19 +99,19 @@ export function InventoryTab() {
       await inventoryApi.create({
         name: newItem.name,
         category: newItem.category,
-        quantity: newItem.quantity,
-        unit: newItem.unit,
-        min_quantity: newItem.minQuantity,
-        price: newItem.price,
+        quantity: parseInt(newItem.quantity) || 0,
+        unit: '',
+        min_quantity: parseInt(newItem.minQuantity) || 0,
+        price: parseInt(newItem.price) || 0,
       });
-      toast.success('재고 추가 성공');
-      setNewItem({ name: '', category: '', quantity: 0, unit: '', minQuantity: 0, price: 0 });
+      toast.success('새 재고를 추가했어요.');
+      setNewItem({ name: '', category: '', quantity: '', minQuantity: '', price: '' });
       setIsDialogOpen(false);
       loadInventory();
       loadStats();
     } catch (error) {
       console.error('재고 추가 오류:', error);
-      toast.error('재고 추가 오류가 발생했습니다.');
+      toast.error('재고를 추가하지 못했어요. 잠시 후 다시 시도해 주세요.');
     } finally {
       setAdding(false);
     }
@@ -112,18 +122,18 @@ export function InventoryTab() {
     setEditItem({
       name: item.name,
       category: item.category,
-      quantity: item.quantity,
-      unit: item.unit,
-      minQuantity: item.min_quantity,
-      price: item.price,
+      quantity: item.quantity.toString(),
+      minQuantity: item.min_quantity.toString(),
+      price: item.price.toString(),
     });
     setIsEditDialogOpen(true);
   };
 
-  const handleUpdateItem = async () => {
+  const handleUpdateItem = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!editingItemId) return;
-    if (!editItem.name || !editItem.category || !editItem.unit) {
-      toast.error('재고 수정 필수 정보가 누락되었습니다.');
+    if (!editItem.name || !editItem.category) {
+      toast.error('필수 정보를 입력하고 다시 시도해 주세요.');
       return;
     }
 
@@ -132,346 +142,422 @@ export function InventoryTab() {
       await inventoryApi.update(editingItemId, {
         name: editItem.name,
         category: editItem.category,
-        quantity: editItem.quantity,
-        unit: editItem.unit,
-        min_quantity: editItem.minQuantity,
-        price: editItem.price,
+        quantity: parseInt(editItem.quantity) || 0,
+        min_quantity: parseInt(editItem.minQuantity) || 0,
+        price: parseInt(editItem.price) || 0,
       });
-      toast.success('재고 정보가 수정되었습니다.');
+      toast.success('재고 정보를 업데이트했어요.');
       setIsEditDialogOpen(false);
       setEditingItemId(null);
-      setEditItem({ name: '', category: '', quantity: 0, unit: '', minQuantity: 0, price: 0 });
+      setEditItem({ name: '', category: '', quantity: '', minQuantity: '', price: '' });
       loadInventory();
       loadStats();
     } catch (error) {
       console.error('재고 수정 오류:', error);
-      toast.error('재고 수정 중 오류가 발생했습니다.');
+      toast.error('재고 정보를 수정하지 못했어요. 잠시 후 다시 시도해 주세요.');
     } finally {
       setEditing(false);
     }
   };
 
   const handleDeleteItem = async (id: number) => {
-    if (!confirm('정말 이 재고 항목을 삭제하시겠습니까?')) {
+    if (!confirm('이 재고를 삭제할까요?')) {
       return;
     }
 
     try {
       await inventoryApi.delete(id);
-      toast.success('재고 항목이 삭제되었습니다.');
+      toast.success('재고를 삭제했어요.');
       loadInventory();
       loadStats();
     } catch (error) {
       console.error('재고 항목 삭제 오류:', error);
-      toast.error('재고 항목 삭제 중 오류가 발생했습니다.');
+      toast.error('재고를 삭제하지 못했어요. 다시 시도해 주세요.');
     }
   };
 
   return (
-    <div className="space-y-6">
-      <Card className="border-gray-200 shadow-md">
-        <CardHeader className="bg-gradient-to-r from-gray-50 to-white border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-gray-800 flex items-center mb-6 gap-2">
-                <Package className="w-5 h-5" />
-                재고 관리
-              </CardTitle>              
-              <CardDescription className="text-gray-600 text-sm">재고 관리를 위한 페이지입니다.</CardDescription>
-            </div>
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="bg-gray-200 text-black border-none cursor-pointer transition-all duration-200 font-medium hover:bg-gray-300 disabled:bg-gray-200 disabled:text-white disabled:opacity-60 disabled:cursor-not-allowed">
-                  <Plus className="w-4 h-4 mr-2" />
-                  재고 추가
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="bg-white">
-                <DialogHeader>
-                  <DialogTitle>새 재고 추가</DialogTitle>
-                  <DialogDescription>새로운 상품의 재고 정보를 입력해주세요.</DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 mt-4">
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="name">상품명</Label>
-                    <Input
-                      id="name"
-                      value={newItem.name}
-                      onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
-                      placeholder="상품명 입력"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="category">카테고리</Label>
-                    <Input
-                      id="category"
-                      value={newItem.category}
-                      onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}
-                      placeholder="예: 식품, 음료"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="flex flex-col gap-2">
-                      <Label htmlFor="quantity">현재 수량</Label>
-                      <Input
-                        id="quantity"
-                        type="number"
-                        value={newItem.quantity}
-                        onChange={(e) => setNewItem({ ...newItem, quantity: Number(e.target.value) })}
-                      />
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <Label htmlFor="unit">단위</Label>
-                      <Input
-                        id="unit"
-                        value={newItem.unit}
-                        onChange={(e) => setNewItem({ ...newItem, unit: e.target.value })}
-                        placeholder="예: 개, kg, L"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="flex flex-col gap-2">
-                      <Label htmlFor="minQuantity">최소 수량</Label>
-                      <Input
-                        id="minQuantity"
-                        type="number"
-                        value={newItem.minQuantity}
-                        onChange={(e) => setNewItem({ ...newItem, minQuantity: Number(e.target.value) })}
-                      />
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <Label htmlFor="price">가격 (원)</Label>
-                      <Input
-                        id="price"
-                        type="number"
-                        value={newItem.price}
-                        onChange={(e) => setNewItem({ ...newItem, price: Number(e.target.value) })}
-                      />
-                    </div>
-                  </div>
-                  <br></br>
-                  <Button 
-                    onClick={handleAddItem} 
-                    className="w-full bg-gray-200 text-black border-none cursor-pointer transition-all duration-200 font-medium hover:bg-gray-300 disabled:bg-gray-200 disabled:text-white disabled:opacity-60 disabled:cursor-not-allowed"
-                    disabled={adding}
-                  >
-                    {adding ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        추가 중...
-                      </>
-                    ) : (
-                      '추가하기'
-                    )}
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
-            
-            {/* Edit Inventory Dialog */}
-            <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-              <DialogContent className="bg-white">
-                <DialogHeader>
-                  <DialogTitle>재고 정보 수정</DialogTitle>
-                  <DialogDescription>재고 정보를 수정해주세요.</DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 mt-4">
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="editName">상품명</Label>
-                    <Input
-                      id="editName"
-                      value={editItem.name}
-                      onChange={(e) => setEditItem({ ...editItem, name: e.target.value })}
-                      placeholder="상품명 입력"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="editCategory">카테고리</Label>
-                    <Input
-                      id="editCategory"
-                      value={editItem.category}
-                      onChange={(e) => setEditItem({ ...editItem, category: e.target.value })}
-                      placeholder="예: 식품, 음료"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="flex flex-col gap-2">
-                      <Label htmlFor="editQuantity">현재 수량</Label>
-                      <Input
-                        id="editQuantity"
-                        type="number"
-                        value={editItem.quantity}
-                        onChange={(e) => setEditItem({ ...editItem, quantity: Number(e.target.value) })}
-                      />
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <Label htmlFor="editUnit">단위</Label>
-                      <Input
-                        id="editUnit"
-                        value={editItem.unit}
-                        onChange={(e) => setEditItem({ ...editItem, unit: e.target.value })}
-                        placeholder="예: 개, kg, L"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="flex flex-col gap-2">
-                      <Label htmlFor="editMinQuantity">최소 수량</Label>
-                      <Input
-                        id="editMinQuantity"
-                        type="number"
-                        value={editItem.minQuantity}
-                        onChange={(e) => setEditItem({ ...editItem, minQuantity: Number(e.target.value) })}
-                      />
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <Label htmlFor="editPrice">가격 (원)</Label>
-                      <Input
-                        id="editPrice"
-                        type="number"
-                        value={editItem.price}
-                        onChange={(e) => setEditItem({ ...editItem, price: Number(e.target.value) })}
-                      />
-                    </div>
-                  </div>
-                  <Button 
-                    onClick={handleUpdateItem} 
-                    className="w-full bg-gray-200 text-black border-none cursor-pointer transition-all duration-200 font-medium hover:bg-gray-300 disabled:bg-gray-200 disabled:text-white disabled:opacity-60 disabled:cursor-not-allowed"
-                    disabled={editing}
-                  >
-                    {editing ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        수정 중...
-                      </>
-                    ) : (
-                      '수정하기'
-                    )}
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
+    <div 
+      className="-mx-6 -mt-6 -mb-6" 
+      style={{ 
+        backgroundColor: '#f3f5f7', 
+        width: '100vw',
+        marginLeft: 'calc(-50vw + 50%)',
+        marginRight: 'calc(-50vw + 50%)',
+        minHeight: '100vh',
+        paddingTop: '1.5rem',
+        paddingBottom: '1.5rem'
+      }}
+    >
+      <div className="container mx-auto px-6 max-w-7xl flex flex-col" style={{ minHeight: 'calc(100vh - 3rem)' }} >
+        <div className="flex items-center justify-between gap-4" style={{ marginBottom: '45px' }}>
+          <div>
+            <h2 className="text-2xl font-medium text-gray-900" style={{ fontSize: '36px', marginLeft: '5px', marginTop: '6.5px' }}>재고 현황</h2>
           </div>
-        </CardHeader>
-        <CardContent className="pt-6">
-          {/* Search */}
-          <div className="mb-6">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <Input
-                placeholder="상품명 또는 카테고리를 검색해주세요."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-          </div>
+          <button
+            onClick={() => setIsDialogOpen(true)}
+            className="flex items-center justify-center gap-3 text-white rounded-full transition-colors"
+            style={{ backgroundColor: '#3182f6', fontSize: '18px', padding: '14px 28px', fontWeight: 600 }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#2563eb';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = '#3182f6';
+            }}
+          >
+            <Plus className="w-6 h-6" />
+            재고 추가
+          </button>
+        </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-              <p className="text-gray-600 mb-1">전체 개수</p>
-              <p className="text-gray-800">{stats?.total_items ?? inventory.length}개</p>
-            </div>
-            <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-100">
-              <p className="text-gray-600 mb-1">재고 부족</p>
-              <p className="text-yellow-700">
-                {stats?.low_stock_count ?? inventory.filter(item => item.quantity <= item.min_quantity && item.quantity > 0).length}개
-              </p>
-            </div>
-            <div className="bg-red-50 rounded-lg p-4 border border-red-100">
-              <p className="text-gray-600 mb-1">품절</p>
-              <p className="text-red-700">
-                {stats?.out_of_stock_count ?? inventory.filter(item => item.quantity === 0).length}개
-              </p>
-            </div>
+        <div className="bg-white rounded-xl border border-gray-200 flex-1" style={{ minHeight: 'calc(100vh - 200px)', marginTop: '2px' }} >
+        {/* Search */}
+        <div className="p-6 border-b border-gray-100">
+          <div className="relative">
+            <Search className="absolute top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400" strokeWidth={1.5} style={{ left: '19px' }} />
+            <Input
+              type="text"
+              placeholder="상품명 또는 카테고리를 검색해 주세요."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="rounded-lg border-gray-300 bg-white"
+              style={{ height: '60px', fontSize: '20px', paddingLeft: '63px' }}
+            />
           </div>
+        </div>
 
-          {/* Table */}
-          <div className="border rounded-lg overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-gray-50 hover:bg-gray-50">
-                  <TableHead className="pl-6 text-center">상품명</TableHead>
-                  <TableHead className="text-center">카테고리</TableHead>
-                  <TableHead className="text-center">현재 수량</TableHead>
-                  <TableHead className="text-center">최소 수량</TableHead>
-                  <TableHead className="text-center">가격</TableHead>
-                  <TableHead className="text-center">상태</TableHead>
-                  <TableHead className="text-center">마지막 업데이트</TableHead>
-                  <TableHead className="text-center">관리</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8">
-                      <Loader2 className="w-6 h-6 animate-spin mx-auto text-gray-700" />
-                      <p className="text-gray-600 mt-2">재고 목록 로딩 중...</p>
-                    </TableCell>
-                  </TableRow>
-                ) : filteredInventory.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-gray-500">
-                      재고 항목이 없습니다.
-                    </TableCell>
-                  </TableRow>
-                ) : (
+        {/* Stats */}
+        <div className="flex gap-6 p-6 border-b border-gray-100">
+          <div className="flex-1 rounded-lg border border-gray-200 bg-white p-4">
+            <p className="text-[13px] text-gray-500 mb-1">전체 재고</p>
+            <p className="text-[20px] text-gray-900 font-medium">
+              {stats?.total_items ?? inventory.length}개
+            </p>
+          </div>
+          <div className="flex-1 rounded-lg border border-gray-200 bg-white p-4">
+            <p className="text-[13px] text-gray-500 mb-1">부족 위험</p>
+            <p className="text-[20px] text-gray-900 font-medium">
+              {stats?.low_stock_count ??
+                inventory.filter(
+                  (item) => item.quantity <= item.min_quantity && item.quantity > 0
+                ).length}
+              개
+            </p>
+          </div>
+          <div className="flex-1 rounded-lg border border-gray-200 bg-white p-4">
+            <p className="text-[13px] text-gray-500 mb-1">품절 수</p>
+            <p className="text-[20px] text-gray-900 font-medium">
+              {stats?.out_of_stock_count ??
+                inventory.filter((item) => item.quantity === 0).length}
+              개
+            </p>
+          </div>
+        </div>
+
+        {/* Table */}
+        <div className="overflow-x-auto">
+          {loading ? (
+            <div className="py-16 text-center">
+              <Loader2 className="w-6 h-6 animate-spin mx-auto text-[#3182F6]" />
+              <p className="text-gray-600 mt-2 text-[15px]">재고 목록을 불러오는 중이에요…</p>
+            </div>
+          ) : (
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-100" style={{ height: '50px' }}>
+                  <th className="text-center px-6 text-[19px] text-gray-600 font-medium">
+                    상품명
+                  </th>
+                  <th className="text-center px-6 text-[19px] text-gray-600 font-medium">
+                    카테고리
+                  </th>
+                  <th className="text-center px-6 text-[19px] text-gray-600 font-medium">
+                    현재 수량
+                  </th>
+                  <th className="text-center px-6 text-[19px] text-gray-600 font-medium">
+                    최소 수량
+                  </th>
+                  <th className="text-center px-6 text-[19px] text-gray-600 font-medium">
+                    가격
+                  </th>
+                  <th className="text-center px-6 text-[19px] text-gray-600 font-medium">
+                    상태
+                  </th>
+                  <th className="text-center px-6 text-[19px] text-gray-600 font-medium">
+                    마지막 업데이트
+                  </th>
+                  <th className="text-center px-6 text-[19px] text-gray-600 font-medium">
+                    관리
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredInventory.length > 0 ? (
                   filteredInventory.map((item) => {
-                    const status = getStockStatus(item.quantity, item.min_quantity);
+                    const isOutOfStock = item.quantity === 0;
+                    const isLowStock = item.quantity > 0 && item.quantity < item.min_quantity;
+                    let status = '정상';
+                    let statusColor = 'text-green-600 bg-green-50';
+                    if (isOutOfStock) {
+                      status = '품절';
+                      statusColor = 'text-red-600 bg-red-50';
+                    } else if (isLowStock) {
+                      status = '부족';
+                      statusColor = 'text-orange-600 bg-orange-50';
+                    }
+
                     return (
-                      <TableRow key={item.id} className="hover:bg-gray-50/50">
-                        <TableCell className="pl-6 text-center">{item.name}</TableCell>
-                        <TableCell className="text-center">
-                          <Badge variant="outline" className="border-gray-300 text-gray-800">
-                            {item.category}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {item.quantity} {item.unit}
-                        </TableCell>
-                        <TableCell className="text-gray-600 text-center">
-                          {item.min_quantity} {item.unit}
-                        </TableCell>
-                        <TableCell className="text-center">{item.price.toLocaleString()}원</TableCell>
-                        <TableCell className="text-center">
-                          <Badge 
-                            variant={status.variant}
+                      <tr
+                        key={item.id}
+                        className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors"
+                      >
+                        <td className="px-6 py-4 text-center text-[15px] text-gray-900">{item.name}</td>
+                        <td className="px-6 py-4 text-center text-[15px] text-gray-600">{item.category}</td>
+                        <td className="px-6 py-4 text-center text-[15px] text-gray-900">{item.quantity}</td>
+                        <td className="px-6 py-4 text-center text-[15px] text-gray-600">{item.min_quantity}</td>
+                        <td className="px-6 py-4 text-center text-[15px] text-gray-900">
+                          ₩{item.price.toLocaleString()}
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <span
+                            className={`inline-block px-2.5 py-1 rounded-md text-[13px] ${statusColor}`}
                           >
-                            {status.text}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-gray-600 text-center">{item.last_updated}</TableCell>
-                        <TableCell className="text-center">
-                          <div className="flex gap-2 justify-center">
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              className="text-gray-700 hover:text-gray-800 hover:bg-gray-50"
+                            {status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-center text-[15px] text-gray-600">
+                          {item.last_updated}
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <div className="flex items-center justify-center gap-1">
+                            <button
                               onClick={() => handleEditItem(item)}
+                              className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                             >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              <Edit2 className="w-[16px] h-[16px]" strokeWidth={1.5} />
+                            </button>
+                            <button
                               onClick={() => handleDeleteItem(item.id)}
+                              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                             >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
+                              <Trash2 className="w-[16px] h-[16px]" strokeWidth={1.5} />
+                            </button>
                           </div>
-                        </TableCell>
-                      </TableRow>
+                        </td>
+                      </tr>
                     );
                   })
+                ) : (
+                  <tr>
+                    <td colSpan={8} className="px-6 text-center" style={{ paddingTop: '120px', paddingBottom: '120px' }}>
+                      <p className="text-[15px] text-gray-400">등록된 재고가 아직 없어요.</p>
+                    </td>
+                  </tr>
                 )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+      </div>
+
+      {/* Add Inventory Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-[22px] font-medium">재고 추가</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleAddItem} className="space-y-6 pt-4">
+            <div className="space-y-2">
+              <Label htmlFor="name" className="text-[14px] text-gray-600">제품명</Label>
+              <Input
+                id="name"
+                value={newItem.name}
+                onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
+                placeholder="예: 노트북 스탠드"
+                required
+                className="h-11 rounded-lg border-gray-200 bg-gray-50 text-[15px]"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="category" className="text-[14px] text-gray-600">카테고리</Label>
+              <Input
+                id="category"
+                value={newItem.category}
+                onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}
+                placeholder="예: 사무용품"
+                required
+                className="h-11 rounded-lg border-gray-200 bg-gray-50 text-[15px]"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="quantity" className="text-[14px] text-gray-600">현재 수량</Label>
+                <Input
+                  id="quantity"
+                  type="number"
+                  value={newItem.quantity}
+                  onChange={(e) => setNewItem({ ...newItem, quantity: e.target.value })}
+                  placeholder="0"
+                  required
+                  min="0"
+                  className="h-11 rounded-lg border-gray-200 bg-gray-50 text-[15px]"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="minQuantity" className="text-[14px] text-gray-600">최소 수량</Label>
+                <Input
+                  id="minQuantity"
+                  type="number"
+                  value={newItem.minQuantity}
+                  onChange={(e) =>
+                    setNewItem({ ...newItem, minQuantity: e.target.value })
+                  }
+                  placeholder="0"
+                  required
+                  min="0"
+                  className="h-11 rounded-lg border-gray-200 bg-gray-50 text-[15px]"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="price" className="text-[14px] text-gray-600">가격 (₩)</Label>
+              <Input
+                id="price"
+                type="number"
+                value={newItem.price}
+                onChange={(e) => setNewItem({ ...newItem, price: e.target.value })}
+                placeholder="0"
+                required
+                min="0"
+                className="h-11 rounded-lg border-gray-200 bg-gray-50 text-[15px]"
+              />
+            </div>
+            <div className="flex gap-3 pt-4">
+              <button
+                type="button"
+                onClick={() => setIsDialogOpen(false)}
+                className="flex-1 h-11 px-4 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors text-[15px]"
+              >
+                취소
+              </button>
+              <button
+                type="submit"
+                disabled={adding}
+                className="flex-1 h-11 px-4 bg-[#93C5FD] text-white rounded-lg hover:bg-[#7CB5FC] transition-colors text-[15px] disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {adding ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin inline" />
+                    추가 중...
+                  </>
+                ) : (
+                  '추가'
+                )}
+              </button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Inventory Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-[22px] font-medium">재고 수정</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleUpdateItem} className="space-y-6 pt-4">
+            <div className="space-y-2">
+              <Label htmlFor="editName" className="text-[14px] text-gray-600">제품명</Label>
+              <Input
+                id="editName"
+                value={editItem.name}
+                onChange={(e) => setEditItem({ ...editItem, name: e.target.value })}
+                placeholder="예: 노트북 스탠드"
+                required
+                className="h-11 rounded-lg border-gray-200 bg-gray-50 text-[15px]"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="editCategory" className="text-[14px] text-gray-600">카테고리</Label>
+              <Input
+                id="editCategory"
+                value={editItem.category}
+                onChange={(e) => setEditItem({ ...editItem, category: e.target.value })}
+                placeholder="예: 사무용품"
+                required
+                className="h-11 rounded-lg border-gray-200 bg-gray-50 text-[15px]"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="editQuantity" className="text-[14px] text-gray-600">현재 수량</Label>
+                <Input
+                  id="editQuantity"
+                  type="number"
+                  value={editItem.quantity}
+                  onChange={(e) => setEditItem({ ...editItem, quantity: e.target.value })}
+                  placeholder="0"
+                  required
+                  min="0"
+                  className="h-11 rounded-lg border-gray-200 bg-gray-50 text-[15px]"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editMinQuantity" className="text-[14px] text-gray-600">최소 수량</Label>
+                <Input
+                  id="editMinQuantity"
+                  type="number"
+                  value={editItem.minQuantity}
+                  onChange={(e) =>
+                    setEditItem({ ...editItem, minQuantity: e.target.value })
+                  }
+                  placeholder="0"
+                  required
+                  min="0"
+                  className="h-11 rounded-lg border-gray-200 bg-gray-50 text-[15px]"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="editPrice" className="text-[14px] text-gray-600">가격 (₩)</Label>
+              <Input
+                id="editPrice"
+                type="number"
+                value={editItem.price}
+                onChange={(e) => setEditItem({ ...editItem, price: e.target.value })}
+                placeholder="0"
+                required
+                min="0"
+                className="h-11 rounded-lg border-gray-200 bg-gray-50 text-[15px]"
+              />
+            </div>
+            <div className="flex gap-3 pt-4">
+              <button
+                type="button"
+                onClick={() => setIsEditDialogOpen(false)}
+                className="flex-1 h-11 px-4 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors text-[15px]"
+              >
+                취소
+              </button>
+              <button
+                type="submit"
+                disabled={editing}
+                className="flex-1 h-11 px-4 bg-[#93C5FD] text-white rounded-lg hover:bg-[#7CB5FC] transition-colors text-[15px] disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {editing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin inline" />
+                    수정 중...
+                  </>
+                ) : (
+                  '수정'
+                )}
+              </button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

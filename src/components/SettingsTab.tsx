@@ -64,7 +64,7 @@ export function SettingsTab() {
       setEmployees(data);
     } catch (error) {
       console.error('직원 목록 로딩 오류:', error);
-      toast.error('직원 목록 로딩 오류가 발생했습니다.');
+      toast.error('직원 목록을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.');
     }
   };
 
@@ -92,7 +92,7 @@ export function SettingsTab() {
 
   const handleAddEmployee = async () => {
     if (!newEmployee.name || !newEmployee.role || !newEmployee.phone) {
-      toast.error('모든 항목을 입력해주세요.');
+      toast.error('모든 항목을 입력해 주세요.');
       return;
     }
 
@@ -104,13 +104,13 @@ export function SettingsTab() {
         phone: newEmployee.phone,
         join_date: new Date().toISOString().split('T')[0],
       });
-      toast.success('직원이 추가되었습니다.');
+      toast.success('직원을 추가했어요.');
       setNewEmployee({ name: '', role: '', phone: '' });
       setIsDialogOpen(false);
       loadEmployees();
     } catch (error) {
       console.error('직원 추가 오류:', error);
-      toast.error('직원 추가 중 오류가 발생했습니다.');
+      toast.error('직원을 추가하지 못했어요. 잠시 후 다시 시도해 주세요.');
     } finally {
       setAdding(false);
     }
@@ -129,7 +129,7 @@ export function SettingsTab() {
   const handleUpdateEmployee = async () => {
     if (!editingEmployeeId) return;
     if (!editEmployee.name || !editEmployee.role || !editEmployee.phone) {
-      toast.error('모든 항목을 입력해주세요.');
+      toast.error('모든 항목을 입력해 주세요.');
       return;
     }
 
@@ -140,31 +140,31 @@ export function SettingsTab() {
         role: editEmployee.role,
         phone: editEmployee.phone,
       });
-      toast.success('직원 정보가 수정되었습니다.');
+      toast.success('직원 정보를 업데이트했어요.');
       setIsEditDialogOpen(false);
       setEditingEmployeeId(null);
       setEditEmployee({ name: '', role: '', phone: '' });
       loadEmployees();
     } catch (error) {
       console.error('직원 수정 오류:', error);
-      toast.error('직원 수정 중 오류가 발생했습니다.');
+      toast.error('직원 정보를 수정하지 못했어요. 잠시 후 다시 시도해 주세요.');
     } finally {
       setEditing(false);
     }
   };
 
   const handleDeleteEmployee = async (id: number) => {
-    if (!confirm('정말 이 직원을 삭제하시겠습니까?')) {
+    if (!confirm('이 직원을 삭제할까요?')) {
       return;
     }
 
     try {
       await employeeApi.delete(id);
-      toast.success('직원이 삭제되었습니다.');
+      toast.success('직원을 삭제했어요.');
       loadEmployees();
     } catch (error) {
       console.error('직원 삭제 오류:', error);
-      toast.error('직원 삭제 중 오류가 발생했습니다.');
+      toast.error('직원을 삭제하지 못했어요. 다시 시도해 주세요.');
     }
   };
 
@@ -172,11 +172,11 @@ export function SettingsTab() {
     try {
       setSaving(true);
       await storeApi.update(storeForm);
-      toast.success('가게 정보가 저장되었습니다.');
+      toast.success('가게 정보를 저장했어요.');
       loadStore();
     } catch (error) {
       console.error('가게 정보 저장 오류:', error);
-      toast.error('가게 정보 저장 중 오류가 발생했습니다.');
+      toast.error('가게 정보를 저장하지 못했어요. 잠시 후 다시 시도해 주세요.');
     } finally {
       setSaving(false);
     }
@@ -197,21 +197,38 @@ export function SettingsTab() {
       });
     } catch (error) {
       console.error('알림 설정 저장 오류:', error);
-      toast.error('알림 설정 저장 중 오류가 발생했습니다.');
+      toast.error('알림 설정을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.');
       loadNotifications(); // 원래 값으로 복구
     }
   };
 
   return (
-    <div className="space-y-6">
+    <div 
+      className="-mx-6 -mt-6 -mb-6" 
+      style={{ 
+        backgroundColor: '#f3f5f7', 
+        width: '100vw',
+        marginLeft: 'calc(-50vw + 50%)',
+        marginRight: 'calc(-50vw + 50%)',
+        minHeight: '100vh',
+        paddingTop: '1.5rem',
+        paddingBottom: '1.5rem'
+      }}
+    >
+      <div className="container mx-auto px-6 max-w-7xl flex flex-col" style={{ minHeight: 'calc(100vh - 3rem)' }}>
+        <div style={{ marginBottom: '45px' }}>
+          <h2 className="text-2xl font-medium text-gray-900" style={{ fontSize: '36px', marginLeft: '5px', marginTop: '6.5px' }}>설정</h2>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 flex-1" style={{ minHeight: 'calc(100vh - 200px)', marginTop: '2px' }}>
+          <div className="space-y-6 p-6">
       {/* Store Settings */}
-      <Card className="border-gray-200 shadow-md">
-        <CardHeader className="bg-gradient-to-r from-gray-50 to-white border-b border-gray-200">
-          <CardTitle className="text-gray-800 flex items-center gap-2">
+      <Card className="border-[var(--border)] shadow-sm bg-white">
+        <CardHeader className="bg-white border-b border-[var(--border)]">
+          <CardTitle className="text-[var(--foreground)] flex items-center gap-2">
             <StoreIcon className="w-5 h-5" />
             가게 설정
           </CardTitle>
-          <CardDescription>기본 정보를 관리하세요</CardDescription>
+          <CardDescription>가게 정보를 업데이트하고 최신 상태로 유지해 보세요.</CardDescription>
         </CardHeader>
         <CardContent className="pt-6">
           <div className="space-y-4 max-w-2xl">
@@ -244,9 +261,9 @@ export function SettingsTab() {
             </div>
             <br></br>
             <Button
-              className="bg-gray-200 text-black border-none cursor-pointer transition-all duration-200 font-medium hover:bg-gray-300 disabled:bg-gray-200 disabled:text-white disabled:opacity-60 disabled:cursor-not-allowed"
               onClick={handleSaveStore}
               disabled={saving}
+              className="w-full sm:w-auto"
             >
               {saving ? (
                 <>
@@ -262,27 +279,27 @@ export function SettingsTab() {
       </Card>
 
       {/* Employee Management */}
-      <Card className="border-gray-200 shadow-md">
-        <CardHeader className="bg-gradient-to-r from-gray-50 to-white border-b border-gray-200">
+      <Card className="border-[var(--border)] shadow-sm bg-white">
+        <CardHeader className="bg-white border-b border-[var(--border)]">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-gray-800 flex items-center gap-2">
+              <CardTitle className="text-[var(--foreground)] flex items-center gap-2">
                 <Users className="w-5 h-5" />
                 직원 관리
               </CardTitle>
-              <CardDescription>직원 정보를 관리하세요</CardDescription>
+              <CardDescription>직원 정보를 업데이트하고 연락처를 최신으로 유지해 주세요.</CardDescription>
             </div>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="bg-gray-200 text-black border-none cursor-pointer transition-all duration-200 font-medium hover:bg-gray-300 disabled:bg-gray-200 disabled:text-white disabled:opacity-60 disabled:cursor-not-allowed">
+                <Button>
                   <Plus className="w-4 h-4 mr-2" />
-                  직원 추가
+                  직원 추가하기
                 </Button>
               </DialogTrigger>
               <DialogContent className="bg-white">
                 <DialogHeader>
                   <DialogTitle>새 직원 추가</DialogTitle>
-                  <DialogDescription>새로운 직원의 정보를 입력해주세요.</DialogDescription>
+                  <DialogDescription>새 직원 정보를 입력해 주세요.</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 mt-4">
                   <div className="flex flex-col gap-2">
@@ -315,7 +332,7 @@ export function SettingsTab() {
                   <br></br>
                   <Button
                     onClick={handleAddEmployee}
-                    className="w-full bg-gray-200 text-black border-none cursor-pointer transition-all duration-200 font-medium hover:bg-gray-300 disabled:bg-gray-200 disabled:text-white disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="w-full"
                     disabled={adding}
                   >
                     {adding ? (
@@ -336,7 +353,7 @@ export function SettingsTab() {
               <DialogContent className="bg-white">
                 <DialogHeader>
                   <DialogTitle>직원 정보 수정</DialogTitle>
-                  <DialogDescription>직원의 정보를 수정해주세요.</DialogDescription>
+                  <DialogDescription>직원 정보를 수정해 주세요.</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 mt-4">
                   <div className="flex flex-col gap-2">
@@ -369,7 +386,7 @@ export function SettingsTab() {
                   <br></br>
                   <Button
                     onClick={handleUpdateEmployee}
-                    className="w-full bg-gray-200 text-black border-none cursor-pointer transition-all duration-200 font-medium hover:bg-gray-300 disabled:bg-gray-200 disabled:text-white disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="w-full"
                     disabled={editing}
                   >
                     {editing ? (
@@ -387,7 +404,7 @@ export function SettingsTab() {
           </div>
         </CardHeader>
         <CardContent className="pt-6">
-          <div className="border rounded-lg overflow-hidden">
+          <div className="border border-[var(--border)] rounded-2xl overflow-hidden bg-white shadow-lg">
             <Table>
               <TableHeader>
                 <TableRow className="bg-gray-50 hover:bg-gray-50">
@@ -404,18 +421,18 @@ export function SettingsTab() {
                   <TableRow>
                     <TableCell colSpan={6} className="text-center py-8">
                       <Loader2 className="w-6 h-6 animate-spin mx-auto text-gray-700" />
-                      <p className="text-gray-600 mt-2">로딩 중...</p>
+                      <p className="text-gray-600 mt-2">직원 목록을 불러오는 중이에요…</p>
                     </TableCell>
                   </TableRow>
                 ) : employees.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center py-8 text-gray-500">
-                      직원이 없습니다.
+                      등록된 직원이 아직 없어요.
                     </TableCell>
                   </TableRow>
                 ) : (
                   employees.map((employee) => (
-                    <TableRow key={employee.id} className="hover:bg-gray-50/50">
+                    <TableRow key={employee.id} className="hover:bg-gray-50/50" style={{ borderRadius: '16px', overflow: 'hidden' }}>
                       <TableCell className="pl-6 text-center">{employee.name}</TableCell>
                       <TableCell className="text-center">
                         <Badge variant="outline" className="border-gray-300 text-gray-800">
@@ -459,26 +476,26 @@ export function SettingsTab() {
       </Card>
 
       {/* Notification Settings */}
-      <Card className="border-gray-200 shadow-md">
-        <CardHeader className="bg-gradient-to-r from-gray-50 to-white border-b border-gray-200">
-          <CardTitle className="text-gray-800 flex items-center gap-2">
+      <Card className="border-[var(--border)] shadow-sm bg-white">
+        <CardHeader className="bg-white border-b border-[var(--border)]">
+          <CardTitle className="text-[var(--foreground)] flex items-center gap-2">
             <Bell className="w-5 h-5" />
             알림 설정
           </CardTitle>
-          <CardDescription>원하는 알림을 설정해주세요.</CardDescription>
+          <CardDescription>꼭 필요한 순간에만 알림을 받아 보세요.</CardDescription>
         </CardHeader>
         <CardContent className="pt-6">
           {loading ? (
             <div className="text-center py-8">
-              <Loader2 className="w-6 h-6 animate-spin mx-auto text-gray-700" />
-              <p className="text-gray-600 mt-2">로딩 중...</p>
+              <Loader2 className="w-6 h-6 animate-spin mx-auto text-[#3182F6]" />
+              <p className="text-gray-600 mt-2">알림 설정을 불러오는 중이에요…</p>
             </div>
           ) : notifications ? (
             <div className="space-y-4 max-w-2xl">
               <div className="flex items-center justify-end pt-3 pb-3 gap-7">
                 <div className="flex-1">
                   <p className="text-gray-800">재고 부족 알림</p>
-                  <p className="text-gray-600">재고가 최소 수량 아래로 내려가면 알림을 보내드립니다</p>
+                  <p className="text-gray-600 text-sm">재고가 최소 수량 아래로 내려가면 바로 알려드릴게요.</p>
                 </div>
                 <Switch
                   checked={notifications.low_stock}
@@ -489,7 +506,7 @@ export function SettingsTab() {
               <div className="flex items-center justify-end pt-3 pb-3 gap-7">
                 <div className="flex-1">
                   <p className="text-gray-800">품절 알림</p>
-                  <p className="text-gray-600">상품이 품절되면 즉시 알림을 보내드립니다</p>
+                  <p className="text-gray-600 text-sm">상품이 품절되면 즉시 알려드릴게요.</p>
                 </div>
                 <Switch
                   checked={notifications.out_of_stock}
@@ -500,7 +517,7 @@ export function SettingsTab() {
               <div className="flex items-center justify-end pt-3 pb-3 gap-7">
                 <div className="flex-1">
                   <p className="text-gray-800">발주 알림</p>
-                  <p className="text-gray-600">자동 발주 추천 시점이 되면 알림을 보내드립니다</p>
+                  <p className="text-gray-600 text-sm">자동 발주 추천 시점이 되면 알려드릴게요.</p>
                 </div>
                 <Switch
                   checked={notifications.order_reminder}
@@ -511,7 +528,7 @@ export function SettingsTab() {
               <div className="flex items-center justify-end pt-3 pb-3 gap-7">
                 <div className="flex-1">
                   <p className="text-gray-800">일일 리포트</p>
-                  <p className="text-gray-600">매일 재고 현황 리포트를 보내드립니다</p>
+                  <p className="text-gray-600 text-sm">매일 재고 현황 리포트를 보내드릴게요.</p>
                 </div>
                 <Switch
                   checked={notifications.daily_report}
@@ -522,6 +539,9 @@ export function SettingsTab() {
           ) : null}
         </CardContent>
       </Card>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -25,7 +25,7 @@ export function OrderRecommendationTab() {
       setRecommendations(data);
     } catch (error) {
       console.error('발주 추천 목록 로딩 오류:', error);
-      toast.error('발주 추천 목록 로딩 오류가 발생했습니다.');
+      toast.error('발주 추천을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.');
     } finally {
       setLoading(false);
     }
@@ -68,184 +68,205 @@ export function OrderRecommendationTab() {
         }));
 
       await orderApi.create({ items });
-      toast.success(`${selectedItems.length}개의 상품을 발주했습니다.`);
+      toast.success(`${selectedItems.length}개의 상품을 발주했어요.`);
       setSelectedItems([]);
       loadRecommendations();
     } catch (error) {
       console.error('발주 오류:', error);
-      toast.error('발주 오류가 발생했습니다.');
+      toast.error('발주를 진행하지 못했어요. 잠시 후 다시 시도해 주세요.');
     } finally {
       setOrdering(false);
     }
   };
 
   return (
-    <div className="space-y-6">
-      <Card className="border border-gray-300 shadow-sm">
-        <CardHeader className="bg-white border-b border-gray-300 pt-6 pb-6">
-          <CardTitle className="text-gray-800 flex items-center gap-2">
-            <TrendingUp className="w-5 h-5" />
-            발주 추천
-          </CardTitle>
-          <CardDescription className="text-gray-600 text-sm">AI 기반 재고 분석으로 자동으로 발주를 추천합니다.</CardDescription>
-        </CardHeader>
-        <CardContent className="pt-6">
-          <Alert className="mb-6 border border-gray-300 bg-gray-50">
-            <AlertCircle className="w-4 h-4 text-gray-700" />
-            <AlertDescription className="text-gray-800">
-              우선순위가 높은 상품을 우선적으로 발주하세요. 최근 사용량을 분석하여 발주하는 것이 효율적입니다.
-            </AlertDescription>
-          </Alert>
+    <div 
+      className="-mx-6 -mt-6 -mb-6" 
+      style={{ 
+        backgroundColor: '#f3f5f7', 
+        width: '100vw',
+        marginLeft: 'calc(-50vw + 50%)',
+        marginRight: 'calc(-50vw + 50%)',
+        minHeight: '100vh',
+        paddingTop: '1.5rem',
+        paddingBottom: '1.5rem'
+      }}
+    >
+      <div className="container mx-auto px-6 max-w-7xl flex flex-col" style={{ minHeight: 'calc(100vh - 3rem)' }}>
+        <div style={{ marginBottom: '45px' }}>
+          <h2 className="text-2xl font-medium text-gray-900" style={{ fontSize: '36px', marginLeft: '5px', marginTop: '6.5px' }}>발주 추천</h2>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 flex-1" style={{ minHeight: 'calc(100vh - 200px)', marginTop: '2px' }}>
+        {/* Description */}
+        <div className="p-6 border-b border-gray-100">
+          <p className="text-gray-600 flex items-center gap-2" style={{ fontSize: '17px', marginLeft: '2px' }}>
+            <AlertCircle className="w-4 h-4 text-[#3182F6]" />
+            AI가 최근 판매 흐름을 분석하고 필요한 발주를 알려드려요.
+          </p>
+        </div>
 
-          {/* Summary Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div className="rounded-lg p-4 border bg-red-50 border-red-200">
-              <p className="text-gray-600 mb-1">높음 발주</p>
-              <p className="text-red-700">
-                {recommendations.filter(r => r.priority === 'high').length}개
-              </p>
-            </div>
-            <div className="rounded-lg p-4 border bg-yellow-50 border-yellow-200">
-              <p className="text-gray-600 mb-1">보통 발주</p>
-              <p className="text-yellow-700">
-                {recommendations.filter(r => r.priority === 'medium').length}개
-              </p>
-            </div>
-            <div className="rounded-lg p-4 border bg-gray-50 border-gray-300">
-              <p className="text-gray-600 mb-1">선택 개수</p>
-              <p className="text-gray-800">{selectedItems.length}개</p>
-            </div>
-            <div className="rounded-lg p-4 border bg-green-50 border-green-200">
-              <p className="text-gray-600 mb-1">예상 비용</p>
-              <p className="text-green-700">{totalCost.toLocaleString()}원</p>
-            </div>
+        {/* Stats */}
+        <div className="flex gap-6 p-6 border-b border-gray-100">
+          <div className="flex-1 rounded-lg border border-gray-200 bg-white p-4">
+            <p className="text-[13px] text-gray-500 mb-1">긴급 발주</p>
+            <p className="text-[20px] text-gray-900 font-medium">
+              {recommendations.filter(r => r.priority === 'high').length}개
+            </p>
           </div>
+          <div className="flex-1 rounded-lg border border-gray-200 bg-white p-4">
+            <p className="text-[13px] text-gray-500 mb-1">보통 발주</p>
+            <p className="text-[20px] text-gray-900 font-medium">
+              {recommendations.filter(r => r.priority === 'medium').length}개
+            </p>
+          </div>
+          <div className="flex-1 rounded-lg border border-gray-200 bg-white p-4">
+            <p className="text-[13px] text-gray-500 mb-1">선택한 상품</p>
+            <p className="text-[20px] text-gray-900 font-medium">{selectedItems.length}개</p>
+          </div>
+          <div className="flex-1 rounded-lg border border-gray-200 bg-white p-4">
+            <p className="text-[13px] text-gray-500 mb-1">예상 비용</p>
+            <p className="text-[20px] text-gray-900 font-medium">{totalCost.toLocaleString()}원</p>
+          </div>
+        </div>
 
-          {/* Recommendations Table */}
-          <div className="border border-gray-300 rounded-lg overflow-hidden mb-4">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-gray-50 hover:bg-gray-50">
-                  <TableHead className="w-12 text-center"></TableHead>
-                  <TableHead className="text-center">상품명</TableHead>
-                  <TableHead className="text-center">현재 재고</TableHead>
-                  <TableHead className="text-center">평균 사용</TableHead>
-                  <TableHead className="text-center">추천 발주</TableHead>
-                  <TableHead className="text-center">예상 비용</TableHead>
-                  <TableHead className="text-center">우선순위</TableHead>
-                  <TableHead className="text-center">예상 소진</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8">
-                      <Loader2 className="w-6 h-6 animate-spin mx-auto text-gray-700" />
-                      <p className="text-gray-600 mt-2">발주 추천 목록 로딩 중...</p>
-                    </TableCell>
-                  </TableRow>
-                ) : recommendations.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-gray-500">
-                      발주 추천 목록이 없습니다.
-                    </TableCell>
-                  </TableRow>
-                ) : (
+        {/* Table */}
+        <div className="overflow-x-auto">
+          {loading ? (
+            <div className="py-16 text-center">
+              <Loader2 className="w-6 h-6 animate-spin mx-auto text-[#3182F6]" />
+              <p className="text-gray-600 mt-2 text-[15px]">발주 추천을 불러오는 중이에요…</p>
+            </div>
+          ) : (
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-100" style={{ height: '50px' }}>
+                  <th className="text-center px-6 text-[19px] text-gray-600 font-medium">
+                    상품명
+                  </th>
+                  <th className="text-center px-6 text-[19px] text-gray-600 font-medium">
+                    현재 재고
+                  </th>
+                  <th className="text-center px-6 text-[19px] text-gray-600 font-medium">
+                    평균 사용
+                  </th>
+                  <th className="text-center px-6 text-[19px] text-gray-600 font-medium">
+                    추천 발주
+                  </th>
+                  <th className="text-center px-6 text-[19px] text-gray-600 font-medium">
+                    예상 비용
+                  </th>
+                  <th className="text-center px-6 text-[19px] text-gray-600 font-medium">
+                    우선순위
+                  </th>
+                  <th className="text-center px-6 text-[19px] text-gray-600 font-medium">
+                    예상 소진
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {recommendations.length > 0 ? (
                   recommendations.map((item) => {
                     const daysLeft = item.days_until_out_of_stock;
                     return (
-                      <TableRow
+                      <tr
                         key={item.id}
-                        className={`cursor-pointer transition-colors duration-200 hover:bg-gray-50/50 ${
+                        className={`border-b border-gray-50 hover:bg-gray-50/50 transition-colors cursor-pointer ${
                           selectedItems.includes(item.id) ? 'bg-gray-50' : ''
                         }`}
                         onClick={() => toggleItem(item.id)}
                       >
-                        <TableCell className="text-center">
-                          <input
-                            type="checkbox"
-                            checked={selectedItems.includes(item.id)}
-                            onChange={() => toggleItem(item.id)}
-                            className="w-4 h-4 text-gray-700 rounded border border-gray-300 accent-gray-600 checked:bg-gray-600 checked:border-gray-600 focus:outline-2 focus:outline-gray-500 focus:outline-offset-2"
-                            onClick={(e) => e.stopPropagation()}
-                          />
-                        </TableCell>
-                        <TableCell className="text-center">{item.name}</TableCell>
-                        <TableCell className="text-center">
+                        <td className="px-6 py-4 text-center text-[15px] text-gray-900">{item.name}</td>
+                        <td className="px-6 py-4 text-center text-[15px] text-gray-900">
                           {item.current_stock} {item.unit}
-                        </TableCell>
-                        <TableCell className="text-gray-600 text-center">
+                        </td>
+                        <td className="px-6 py-4 text-center text-[15px] text-gray-600">
                           {item.avg_daily} {item.unit}/일
-                        </TableCell>
-                        <TableCell className="text-gray-800 text-center">
+                        </td>
+                        <td className="px-6 py-4 text-center text-[15px] text-gray-900">
                           {item.recommended_qty} {item.unit}
-                        </TableCell>
-                        <TableCell className="text-center">{item.estimated_cost.toLocaleString()}원</TableCell>
-                        <TableCell className="text-center">{getPriorityBadge(item.priority)}</TableCell>
-                        <TableCell className="text-center">
+                        </td>
+                        <td className="px-6 py-4 text-center text-[15px] text-gray-900">
+                          {item.estimated_cost.toLocaleString()}원
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          {getPriorityBadge(item.priority)}
+                        </td>
+                        <td className="px-6 py-4 text-center text-[15px] text-gray-600">
                           <span className={daysLeft <= 2 ? 'text-red-600' : 'text-gray-600'}>
                             약 {daysLeft}일
                           </span>
-                        </TableCell>
-                      </TableRow>
+                        </td>
+                      </tr>
                     );
                   })
+                ) : (
+                  <tr>
+                    <td colSpan={7} className="px-6 text-center" style={{ paddingTop: '120px', paddingBottom: '120px' }}>
+                      <p className="text-[15px] text-gray-400">지금은 추천할 발주가 없어요.</p>
+                    </td>
+                  </tr>
                 )}
-              </TableBody>
-            </Table>
-          </div>
+              </tbody>
+            </table>
+          )}
+        </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-3 justify-end">
-            <Button
-              variant="outline"
-              onClick={() => setSelectedItems([])}
-              disabled={selectedItems.length === 0}
-            >
-              선택 해제
-            </Button>
-            <Button
-              className="bg-gray-200 text-black border-none cursor-pointer transition-all duration-200 font-medium hover:bg-gray-300 disabled:bg-gray-200 disabled:text-white disabled:opacity-60 disabled:cursor-not-allowed"
-              onClick={handleOrderAll}
-              disabled={selectedItems.length === 0 || ordering}
-            >
-              {ordering ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  발주 중...
-                </>
-              ) : (
-                <>
-                  <ShoppingCart className="w-4 h-4 mr-2" />
-                  발주 진행 ({selectedItems.length}개)
-                </>
-              )}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+        {/* Action Buttons */}
+        <div className="flex justify-end p-6 border-t border-gray-100" style={{ gap: '16px' }}>
+          <Button
+            variant="outline"
+            onClick={() => setSelectedItems([])}
+            disabled={selectedItems.length === 0}
+            className="h-14"
+            style={{ fontSize: '18px', paddingLeft: '48.5px', paddingRight: '48.5px' }}
+          >
+            선택 초기화
+          </Button>
+          <Button
+            onClick={handleOrderAll}
+            disabled={selectedItems.length === 0 || ordering}
+            className="h-14"
+            style={{ fontSize: '18px', paddingLeft: '48.5px', paddingRight: '48.5px' }}
+          >
+            {ordering ? (
+              <>
+                <Loader2 className="w-6 h-6 mr-2 animate-spin" />
+                발주 중...
+              </>
+            ) : (
+              <>
+                <ShoppingCart className="w-6 h-6 mr-2" />
+                발주 진행 ({selectedItems.length}개)
+              </>
+            )}
+          </Button>
+        </div>
 
-      {/* Tips Card */}
-      <Card className="border border-gray-300 shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-gray-800 flex items-center gap-2">
-            <CheckCircle className="w-5 h-5" />
-            발주 팁
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ul className="flex flex-col gap-2 text-gray-700">
-            <li className="flex items-center gap-2">
-              <span className="text-gray-700">•</span>
-              <span>발주 추천 상품 중 2-3개를 선택하여 발주하는 것이 효율적입니다.</span>
-            </li>
-            <li className="flex items-center gap-2">
-              <span className="text-gray-700">•</span>
-              <span>과거 이력과 계절성을 분석하여 인기제품을 발주하는 방식이 효율적입니다.</span>
-            </li>
-          </ul>
-        </CardContent>
-      </Card>
+        {/* Tips Card */}
+        <div className="p-6">
+          <Card className="border-0 shadow-none bg-transparent">
+            <CardHeader>
+              <CardTitle className="text-[var(--foreground)] flex items-center gap-2">
+                <CheckCircle className="w-5 h-5" />
+                발주 팁
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="flex flex-col gap-2 text-gray-700">
+                <li className="flex items-center gap-2">
+                  <span className="text-gray-700">•</span>
+                  <span>추천 상품 중 2~3개만 골라 발주하면 재고 부담을 줄일 수 있어요.</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="text-gray-700">•</span>
+                  <span>계절성과 판매 이력을 참고해 인기 상품을 먼저 발주해 보세요.</span>
+                </li>
+              </ul>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+      </div>
     </div>
   );
 }

@@ -12,60 +12,116 @@ export default function App() {
 
   return (
     <>
-      <div className="min-h-screen bg-white">
-        <div className="container mx-auto px-4 py-6 max-w-7xl">
+      <div className="min-h-screen bg-[#eff0f3]">
+        <div className="container mx-auto px-6 py-12 max-w-7xl">
           {/* Header */}
           <div className="mb-8">
-          <h1 className="text-gray-900 font-medium bold text-lg mb-2 pl-4">Bizup 가게 운영 관리 시스템</h1>
-            <p className="text-gray-500 text-lg mb-6 pl-4">재고부터 발주까지, 스마트하게 관리하세요</p>
+          <h1 className="text-gray-900 font-medium bold mb-2" style={{ fontSize: '35px' }}>Bizup 으로 가게 운영을 한 번에 챙겨요</h1>
+            <p className="mb-6 font-black" style={{ fontSize: '25px', fontWeight: '600', color: '#646d7a' }}>재고부터 발주까지 가볍게 끝내보세요</p>
           </div>
 
           {/* Main Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-4 bg-white shadow-sm h-auto py-4 px-2">
+            <TabsList className="inline-flex items-center bg-[#f2f4f7] p-1.5 rounded-full h-auto" style={{ gap: '16px' }}>
               <TabsTrigger 
                 value="inventory" 
-                className={`flex items-center gap-2 py-3 px-3 transition-all duration-200 text-gray-800 font-medium hover:text-gray-900 ${
-                  activeTab === 'inventory' ? 'bg-gray-50 font-semibold' : ''
-                }`}
+                className="flex items-center justify-center gap-2 px-6 py-3 rounded-full transition-all duration-200 font-medium"
+                style={{
+                  fontSize: '20px',
+                  fontWeight: 600,
+                  color: activeTab === 'inventory' ? '#ffffff' : '#3182f6',
+                  backgroundColor: activeTab === 'inventory' ? '#3182f6' : '#eff6ff'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#3182f6';
+                  e.currentTarget.style.color = '#ffffff';
+                }}
+                onMouseLeave={(e) => {
+                  if (activeTab !== 'inventory') {
+                    e.currentTarget.style.backgroundColor = '#eff6ff';
+                    e.currentTarget.style.color = '#3182f6';
+                  }
+                }}
               >
-                <Package className="w-4 h-4" />
+                <Package className="w-5 h-5" />
                 <span className="hidden sm:inline">재고 관리</span>
                 <span className="sm:hidden">재고</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="order" 
-                className={`flex items-center gap-2 py-3 px-3 transition-all duration-200 text-gray-800 font-medium hover:text-gray-900 ${
-                  activeTab === 'order' ? 'bg-gray-50 font-semibold' : ''
-                }`}
+                className="flex items-center justify-center gap-2 px-6 py-3 rounded-full transition-all duration-200 font-medium"
+                style={{
+                  fontSize: '20px',
+                  fontWeight: 600,
+                  color: activeTab === 'order' ? '#ffffff' : '#3182f6',
+                  backgroundColor: activeTab === 'order' ? '#3182f6' : '#eff6ff'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#3182f6';
+                  e.currentTarget.style.color = '#ffffff';
+                }}
+                onMouseLeave={(e) => {
+                  if (activeTab !== 'order') {
+                    e.currentTarget.style.backgroundColor = '#eff6ff';
+                    e.currentTarget.style.color = '#3182f6';
+                  }
+                }}
               >
-                <TrendingUp className="w-4 h-4" />
+                <TrendingUp className="w-5 h-5" />
                 <span className="hidden sm:inline">발주 추천</span>
                 <span className="sm:hidden">발주</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="outofstock" 
-                className={`flex items-center gap-2 py-3 px-3 transition-all duration-200 text-gray-800 font-medium hover:text-gray-900 ${
-                  activeTab === 'outofstock' ? 'bg-gray-50 font-semibold' : ''
-                }`}
+                className="flex items-center justify-center gap-2 px-6 py-3 rounded-full transition-all duration-200 font-medium"
+                style={{
+                  fontSize: '20px',
+                  fontWeight: 600,
+                  color: activeTab === 'outofstock' ? '#ffffff' : '#3182f6',
+                  backgroundColor: activeTab === 'outofstock' ? '#3182f6' : '#eff6ff'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#3182f6';
+                  e.currentTarget.style.color = '#ffffff';
+                }}
+                onMouseLeave={(e) => {
+                  if (activeTab !== 'outofstock') {
+                    e.currentTarget.style.backgroundColor = '#eff6ff';
+                    e.currentTarget.style.color = '#3182f6';
+                  }
+                }}
               >
-                <AlertTriangle className="w-4 h-4" />
+                <AlertTriangle className="w-5 h-5" />
                 <span className="hidden sm:inline">품절 관리</span>
                 <span className="sm:hidden">품절</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="settings" 
-                className={`flex items-center gap-2 py-3 px-3 transition-all duration-200 text-gray-800 font-medium hover:text-gray-900 ${
-                  activeTab === 'settings' ? 'bg-gray-50 font-semibold' : ''
-                }`}
+                className="flex items-center justify-center gap-2 px-6 py-3 rounded-full transition-all duration-200 font-medium"
+                style={{
+                  fontSize: '20px',
+                  fontWeight: 600,
+                  color: activeTab === 'settings' ? '#ffffff' : '#3182f6',
+                  backgroundColor: activeTab === 'settings' ? '#3182f6' : '#eff6ff'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#3182f6';
+                  e.currentTarget.style.color = '#ffffff';
+                }}
+                onMouseLeave={(e) => {
+                  if (activeTab !== 'settings') {
+                    e.currentTarget.style.backgroundColor = '#eff6ff';
+                    e.currentTarget.style.color = '#3182f6';
+                  }
+                }}
               >
-                <Settings className="w-4 h-4" />
+                <Settings className="w-5 h-5" />
                 <span className="hidden sm:inline">설정</span>
                 <span className="sm:hidden">설정</span>
               </TabsTrigger>
             </TabsList>
 
-            <div className="mt-6">
+            <div className="mt-6 bg-[#eff0f3] rounded-3xl p-6">
               <TabsContent value="inventory" className="m-0">
                 <InventoryTab />
               </TabsContent>
