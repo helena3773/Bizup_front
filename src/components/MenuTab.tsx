@@ -1,48 +1,43 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Button } from './ui/button';
-import { Upload, RefreshCw, Search, Loader2, FileText, CheckCircle, XCircle } from 'lucide-react';
+import { Upload, RefreshCw, Search, Loader2, FileText } from 'lucide-react';
 import { menuApi, MenuItem } from '../lib/api';
 import { toast } from 'sonner';
 import { useDataLoader } from '../hooks/useDataLoader';
 
 export function MenuTab() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadingMode, setUploadingMode] = useState<'add' | 'reset' | null>(null);
 
   // 데이터 로딩 (자동 갱신 30초마다)
+  const loadMenus = useCallback(() => menuApi.getAll(searchQuery || undefined), [searchQuery]);
+  const handleLoadError = useCallback((error: Error) => {
+    console.error('메뉴 목록 로딩 오류:', error);
+  }, []);
+
   const { data: menus, loading, refresh } = useDataLoader(
-    () => menuApi.getAll(searchQuery || undefined, selectedCategory || undefined),
+    loadMenus,
     {
       autoRefresh: true,
       refreshInterval: 30000,
-      onError: (error) => {
-        console.error('메뉴 목록 로딩 오류:', error);
-      },
+      onError: handleLoadError,
     }
   );
-
-  // 카테고리 목록 추출
-  const categories = useMemo(() => {
-    if (!menus) return [];
-    const uniqueCategories = new Set(menus.map((menu) => menu.category));
-    return Array.from(uniqueCategories).sort();
-  }, [menus]);
 
   // 필터링된 메뉴 목록
   const filteredMenus = useMemo(() => {
     if (!menus) return [];
     return menus.filter((menu) => {
-      const matchesSearch = searchQuery === '' || 
-        menu.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        menu.category.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory = selectedCategory === '' || menu.category === selectedCategory;
-      return matchesSearch && matchesCategory;
+      const matchesSearch =
+        searchQuery === '' ||
+        menu.name.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesSearch;
     });
-  }, [menus, searchQuery, selectedCategory]);
+  }, [menus, searchQuery]);
 
   // 파일 선택 핸들러
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -61,19 +56,29 @@ export function MenuTab() {
   };
 
   // CSV 업로드 핸들러
-  const handleUpload = async () => {
+  const handleUpload = async (mode: 'add' | 'reset') => {
     if (!selectedFile) {
       toast.error('파일을 선택해 주세요.');
       return;
     }
 
+    if (mode === 'reset') {
+      const confirmed = window.confirm('기존 메뉴 구성을 모두 초기화하고 새롭게 구성할까요?');
+      if (!confirmed) {
+        return;
+      }
+    }
+
     try {
       setUploading(true);
-      const result = await menuApi.uploadCsv(selectedFile);
+      setUploadingMode(mode);
+      const result = await menuApi.uploadCsv(selectedFile, mode);
       
       if (result.success) {
+        const actionLabel = mode === 'add' ? '추가' : '초기화';
         toast.success(
-          `메뉴 등록 완료! 생성: ${result.items_created}개, 업데이트: ${result.items_updated}개`
+          result.message ||
+          `메뉴 ${actionLabel} 완료! 생성: ${result.menus_created}개, 업데이트: ${result.menus_updated}개`
         );
         setSelectedFile(null);
         // 파일 input 초기화
@@ -82,7 +87,7 @@ export function MenuTab() {
         // 데이터 새로고침
         refresh();
       } else {
-        toast.error(result.message || '메뉴 등록에 실패했어요.');
+        toast.error(result.message || `메뉴 ${mode === 'add' ? '추가' : '초기화'}에 실패했어요.`);
         if (result.errors && result.errors.length > 0) {
           console.error('업로드 오류:', result.errors);
         }
@@ -92,34 +97,7 @@ export function MenuTab() {
       toast.error('파일 업로드 중 오류가 발생했어요. 잠시 후 다시 시도해 주세요.');
     } finally {
       setUploading(false);
-    }
-  };
-
-  // 재고 상태에 따른 색상 반환
-  const getStatusColor = (status: MenuItem['status']) => {
-    switch (status) {
-      case 'sufficient':
-        return 'text-green-600 bg-green-50';
-      case 'low':
-        return 'text-orange-600 bg-orange-50';
-      case 'out_of_stock':
-        return 'text-red-600 bg-red-50';
-      default:
-        return 'text-gray-600 bg-gray-50';
-    }
-  };
-
-  // 재고 상태 텍스트
-  const getStatusText = (status: MenuItem['status']) => {
-    switch (status) {
-      case 'sufficient':
-        return '충분';
-      case 'low':
-        return '부족';
-      case 'out_of_stock':
-        return '품절';
-      default:
-        return '알 수 없음';
+      setUploadingMode(null);
     }
   };
 
@@ -160,7 +138,7 @@ export function MenuTab() {
             <h3 className="font-semibold text-gray-900 mb-2" style={{ fontSize: '20px' }}>메뉴 등록</h3>
             <p className="mb-4" style={{ fontSize: '14px', color: '#4a5565' }}>메뉴를 CSV나 엑셀 파일로 업로드할 수 있어요</p>
             <div className="flex flex-col gap-4">
-              <div className="flex items-center gap-4">
+              <div className="flex flex-col gap-4">
                 <div className="flex-1">
                   <Label htmlFor="file-upload" className="sr-only">파일 선택</Label>
                   <Input
@@ -181,24 +159,48 @@ export function MenuTab() {
                     }
                   `}</style>
                 </div>
-                <Button
-                  onClick={handleUpload}
-                  disabled={!selectedFile || uploading}
-                  className="flex items-center gap-2"
-                  style={{ backgroundColor: '#3182f6', color: 'white' }}
-                >
-                  {uploading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      업로드 중...
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="w-4 h-4" />
-                      메뉴 등록하기
-                    </>
-                  )}
-                </Button>
+                <div className="flex flex-wrap gap-3">
+                  <Button
+                    onClick={() => handleUpload('add')}
+                    disabled={!selectedFile || uploading}
+                    className="flex items-center gap-2"
+                    style={{ backgroundColor: '#3182f6', color: 'white' }}
+                  >
+                    {uploading && uploadingMode === 'add' ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        메뉴 추가 중...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-4 h-4" />
+                        메뉴 추가
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    onClick={() => handleUpload('reset')}
+                    disabled={!selectedFile || uploading}
+                    className="flex items-center gap-2"
+                    style={{ backgroundColor: '#f87171', color: 'white' }}
+                  >
+                    {uploading && uploadingMode === 'reset' ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        초기화 중...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="w-4 h-4" />
+                        메뉴 초기화
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <p className="text-sm text-gray-500">
+                  • <strong>메뉴 추가</strong>: 기존 메뉴에 새 재료를 덧붙이거나 새로운 메뉴를 추가합니다.<br />
+                  • <strong>메뉴 초기화</strong>: 현재 메뉴 구성을 모두 지우고 업로드한 파일로 완전히 재구성합니다.
+                </p>
               </div>
               {selectedFile && (
                 <div className="flex items-center gap-2 text-sm text-gray-600" style={{marginLeft: '8px'}}>
@@ -225,48 +227,18 @@ export function MenuTab() {
             </div>
           </div>
 
-          {/* 검색 및 필터 섹션 */}
+          {/* 검색 섹션 */}
           <div className="p-6 border-b border-gray-100">
-            <div className="flex flex-col sm:flex-row gap-6">
-              <div className="flex-1 relative">
-                <Search className="absolute top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" style={{ left: '19px' }} />
-                <Input
-                  type="text"
-                  placeholder="메뉴명 또는 카테고리로 검색..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="rounded-lg border-gray-300 bg-white"
-                  style={{ height: '50px', fontSize: '16px', paddingLeft: '50px' }}
-                />
-              </div>
-              <div className="sm:w-48" style={{ position: 'relative' }}>
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="w-full h-[50px] px-4 rounded-lg border border-gray-300 bg-white text-gray-900"
-                  style={{ fontSize: '16px', height: '50px', lineHeight: '48px', paddingTop: 0, paddingBottom: 0, paddingRight: '35px', appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none' }}
-                  aria-label="카테고리 선택"
-                >
-                  <option value="" style={{ color: '#0a0a0a' }}>전체 카테고리</option>
-                  {categories.map((category) => (
-                    <option key={category} value={category}>
-                      {category}
-                    </option>
-                  ))}
-                </select>
-                {/* 커스텀 화살표 SVG */}
-                <svg
-                  viewBox="0 0 20 20"
-                  fill="none"
-                  stroke="#6b7280"
-                  strokeWidth={2.2}
-                  style={{ pointerEvents: 'none', position: 'absolute', right: 17, top: '50%', transform: 'translateY(-50%)', width: 18, height: 18 }}
-                  focusable="false"
-                  aria-hidden="true"
-                >
-                  <path d="M6 8l4 4 4-4" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </div>
+            <div className="relative">
+              <Search className="absolute top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" style={{ left: '19px' }} />
+              <Input
+                type="text"
+                placeholder="메뉴명을 검색해 주세요."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="rounded-lg border-gray-300 bg-white"
+                style={{ height: '50px', fontSize: '16px', paddingLeft: '50px' }}
+              />
             </div>
           </div>
 
@@ -291,22 +263,10 @@ export function MenuTab() {
                       메뉴명
                     </th>
                     <th className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px]">
-                      카테고리
+                      재료 수
                     </th>
                     <th className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px]">
-                      현재 재고
-                    </th>
-                    <th className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px]">
-                      최소 재고
-                    </th>
-                    <th className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px]">
-                      단위
-                    </th>
-                    <th className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px]">
-                      가격
-                    </th>
-                    <th className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px]">
-                      상태
+                      재료 목록 (일부)
                     </th>
                   </tr>
                 </thead>
@@ -317,19 +277,10 @@ export function MenuTab() {
                       className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors"
                     >
                       <td className="px-6 py-4 text-center text-[15px] text-gray-900">{menu.name}</td>
-                      <td className="px-6 py-4 text-center text-[15px] text-gray-600">{menu.category}</td>
-                      <td className="px-6 py-4 text-center text-[15px] text-gray-900">{menu.quantity}</td>
-                      <td className="px-6 py-4 text-center text-[15px] text-gray-600">{menu.min_quantity}</td>
-                      <td className="px-6 py-4 text-center text-[15px] text-gray-600">{menu.unit}</td>
-                      <td className="px-6 py-4 text-center text-[15px] text-gray-900">
-                        ₩{menu.price.toLocaleString()}
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <span
-                          className={`inline-block px-2.5 py-1 rounded-md text-[13px] ${getStatusColor(menu.status)}`}
-                        >
-                          {getStatusText(menu.status)}
-                        </span>
+                      <td className="px-6 py-4 text-center text-[15px] text-gray-600">{menu.ingredients.length}개</td>
+                      <td className="px-6 py-4 text-center text-[14px] text-gray-500">
+                        {menu.ingredients.slice(0, 3).map((ing) => `${ing.ingredient_name}`).join(', ')}
+                        {menu.ingredients.length > 3 && ' 외'}
                       </td>
                     </tr>
                   ))}

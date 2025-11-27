@@ -20,12 +20,17 @@ export function InventoryTab() {
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true); // 자동 새로고침 활성화
-  const [refreshInterval, setRefreshInterval] = useState(5000); // 5초마다 새로고침
+  const refreshInterval = 5000; // 5초마다 새로고침
   const [highlightedItems, setHighlightedItems] = useState<Set<number>>(new Set()); // 깜빡이는 항목들
+  const [needsSetup, setNeedsSetup] = useState(false);
+  const [hasShownSetupToast, setHasShownSetupToast] = useState(false);
+  const [autoRefreshLocked, setAutoRefreshLocked] = useState(false);
 
-  const inventoryCategories = Array.from(new Set(inventory.map(i => i.category))).sort();
+  const sanitizedCategories = inventory
+    .map((i) => i.category)
+    .filter((category) => category && category !== '-');
+  const inventoryCategories = Array.from(new Set(sanitizedCategories)).sort();
   const [maxCategoryWidth, setMaxCategoryWidth] = useState<number>(180); // fallback width
-  const measureRef = useRef<HTMLSpanElement>(null);
 
   const [newItem, setNewItem] = useState({
     name: '',
@@ -67,41 +72,37 @@ export function InventoryTab() {
   // 조용한 새로고침 (로딩 표시 없이)
   const loadInventorySilently = async () => {
     try {
+      const previousInventory = inventory;
       // searchQuery가 빈 문자열이거나 공백만 있으면 undefined로 전달
       const search = searchQuery?.trim() || undefined;
       const data = await inventoryApi.getAll(search);
-      
-      // 재고 변화 감지 및 알림
-      const previousInventory = inventory;
+
+      const requiresSetup = handleSetupGuard(data);
       const newHighlightedItems = new Set<number>();
-      
-      if (previousInventory.length > 0) {
+
+      if (!requiresSetup && previousInventory.length > 0) {
         data.forEach((newItem) => {
           const oldItem = previousInventory.find((item) => item.id === newItem.id);
           if (oldItem) {
-            // 재고가 감소한 경우
             if (newItem.quantity < oldItem.quantity) {
-              // 깜빡임 효과를 위한 하이라이트 추가
               newHighlightedItems.add(newItem.id);
-              
-              // 부족 상태로 변경된 경우
+
               if (oldItem.quantity > oldItem.min_quantity && newItem.quantity <= newItem.min_quantity) {
-                toast.warning(`⚠️ ${newItem.name} 재고가 부족합니다! (${newItem.quantity}${newItem.unit} 남음)`);
+                toast.warning(`${newItem.name} 재고가 부족합니다! (${newItem.quantity}${newItem.unit} 남음)`);
               }
-              // 품절된 경우
               if (oldItem.quantity > 0 && newItem.quantity === 0) {
-                toast.error(`🚨 ${newItem.name} 재고가 품절되었습니다!`);
+                toast.error(`${newItem.name} 재고가 품절되었습니다!`);
               }
             }
           }
         });
+      } else if (requiresSetup && highlightedItems.size > 0) {
+        setHighlightedItems(new Set());
       }
       
-      // 하이라이트된 항목들 업데이트
-      if (newHighlightedItems.size > 0) {
+      if (!requiresSetup && newHighlightedItems.size > 0) {
         setHighlightedItems(newHighlightedItems);
         
-        // 2초 후 하이라이트 제거
         setTimeout(() => {
           setHighlightedItems((prev) => {
             const updated = new Set(prev);
@@ -166,6 +167,47 @@ export function InventoryTab() {
     setMaxCategoryWidth(Math.ceil(maxW) + 48); // 좌우 padding 여유 48px
   }, [inventoryCategories.length, inventoryCategories.join(',')]);
 
+  // 선택된 카테고리가 목록에서 사라지면 초기화
+  useEffect(() => {
+    if (selectedInventoryCategory && !inventoryCategories.includes(selectedInventoryCategory)) {
+      setSelectedInventoryCategory('');
+    }
+  }, [inventoryCategories.join(','), selectedInventoryCategory]);
+
+  const isPlaceholderItem = (item: InventoryItem) =>
+    item.category === '-' ||
+    item.unit === '-' ||
+    (item.quantity === 0 && item.min_quantity === 0 && item.price === 0);
+
+  const handleSetupGuard = (items: InventoryItem[]) => {
+    const requiresSetup = items.some(isPlaceholderItem);
+    setNeedsSetup(requiresSetup);
+
+    if (requiresSetup) {
+      if (!hasShownSetupToast) {
+        toast.info('초기화할 때는 카테고리, 현재 수량, 최소 수량, 단위, 가격을 입력해주세요!');
+        setHasShownSetupToast(true);
+      }
+      if (autoRefresh) {
+        setAutoRefresh(false);
+      }
+      if (!autoRefreshLocked) {
+        setAutoRefreshLocked(true);
+      }
+    } else {
+      if (autoRefreshLocked) {
+        setAutoRefresh(true);
+        setAutoRefreshLocked(false);
+        toast.success('모든 항목이 초기화되었어요. 실시간 재고 반영을 시작합니다.');
+      }
+      if (hasShownSetupToast) {
+        setHasShownSetupToast(false);
+      }
+    }
+
+    return requiresSetup;
+  };
+
   const loadInventory = async () => {
     try {
       setLoading(true);
@@ -174,6 +216,7 @@ export function InventoryTab() {
       const data = await inventoryApi.getAll(search);
       console.log('재고 목록 로드됨:', data.length, '개', search ? `(검색: "${search}")` : '(전체)');
       console.log('재고 항목들:', data.map(item => `${item.name} (${item.category})`).slice(0, 10));
+      handleSetupGuard(data);
       setInventory(data);
     } catch (error) {
       console.error('재고 목록 로딩 오류:', error);
@@ -195,9 +238,10 @@ export function InventoryTab() {
   // 상품명/카테고리/카테고리필터 동시 적용 필터
   const filteredInventory = inventory.filter(
     (item) => {
+      const categoryText = (item.category || '').toLowerCase();
       const matchesSearch =
         item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.category.toLowerCase().includes(searchQuery.toLowerCase());
+        categoryText.includes(searchQuery.toLowerCase());
       const matchesCategory = !selectedInventoryCategory || item.category === selectedInventoryCategory;
       return matchesSearch && matchesCategory;
     }
@@ -331,7 +375,12 @@ export function InventoryTab() {
             <h2 className="text-2xl font-medium text-gray-900" style={{ fontSize: '36px', marginLeft: '5px', marginTop: '6.5px' }}>재고 현황</h2>
             {autoRefresh && (
               <p className="text-sm text-gray-500 mt-1" style={{ marginLeft: '5px' }}>
-                🔄 실시간 업데이트 중... ({refreshInterval / 1000}초마다)
+                실시간 업데이트 중... ({refreshInterval / 1000}초마다)
+              </p>
+            )}
+            {autoRefreshLocked && (
+              <p className="text-sm text-blue-600 mt-1" style={{ marginLeft: '5px' }}>
+                필수 정보를 입력할 때까지 실시간 업데이트가 잠시 멈춰 있어요.
               </p>
             )}
           </div>
@@ -344,6 +393,7 @@ export function InventoryTab() {
                   loadStats();
                 }
               }}
+              disabled={autoRefreshLocked}
               className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition-colors border"
               style={{ 
                 backgroundColor: autoRefresh ? '#f0f9ff' : '#ffffff',
@@ -351,7 +401,13 @@ export function InventoryTab() {
                 color: autoRefresh ? '#3182f6' : '#6b7280',
                 fontSize: '14px'
               }}
-              title={autoRefresh ? '자동 새로고침 중지' : '자동 새로고침 시작'}
+              title={
+                autoRefreshLocked
+                  ? '필수 정보를 입력하면 자동으로 재개돼요.'
+                  : autoRefresh
+                    ? '자동 새로고침 중지'
+                    : '자동 새로고침 시작'
+              }
             >
               {autoRefresh ? (
                 <>
@@ -394,6 +450,15 @@ export function InventoryTab() {
             </button>
           </div>
         </div>
+
+        {needsSetup && (
+          <div className="mb-6 rounded-2xl border border-blue-100 bg-blue-50 px-5 py-4 text-sm text-blue-900">
+            <p className="font-semibold text-[15px]">초기화할 때는 카테고리, 현재 수량, 최소 수량, 단위, 가격을 직접 입력해주세요!</p>
+            <p className="mt-1 text-blue-800">
+              모든 항목을 입력하면 실시간 재고 반영이 자동으로 시작됩니다.
+            </p>
+          </div>
+        )}
 
         <div className="bg-white rounded-xl border border-gray-200 flex-1" style={{ minHeight: 'calc(100vh - 200px)', marginTop: '2px' }} >
         {/* Search */}
@@ -558,15 +623,28 @@ export function InventoryTab() {
                   filteredInventory.map((item) => {
                     const isOutOfStock = item.quantity === 0;
                     const isLowStock = item.quantity > 0 && item.quantity < item.min_quantity;
+                    const placeholderItem = isPlaceholderItem(item);
                     let status = '정상';
                     let statusColor = 'text-green-600 bg-green-50';
-                    if (isOutOfStock) {
+                    if (placeholderItem) {
+                      status = '초기화 필요';
+                      statusColor = 'text-sky-700 bg-sky-50';
+                    } else if (isOutOfStock) {
                       status = '품절';
                       statusColor = 'text-red-600 bg-red-50';
                     } else if (isLowStock) {
                       status = '부족';
                       statusColor = 'text-orange-600 bg-orange-50';
                     }
+
+                    const displayCategory = item.category === '-' ? '-' : item.category || '-';
+                    const displayQuantity = placeholderItem
+                      ? '-'
+                      : `${item.quantity}${item.unit ? ` ${item.unit}` : ''}`;
+                    const displayMinQuantity = placeholderItem
+                      ? '-'
+                      : `${item.min_quantity}${item.unit ? ` ${item.unit}` : ''}`;
+                    const displayPrice = placeholderItem ? '-' : `₩${item.price.toLocaleString()}`;
 
                     const isHighlighted = highlightedItems.has(item.id);
 
@@ -578,15 +656,15 @@ export function InventoryTab() {
                         }`}
                       >
                         <td className="px-6 py-4 text-center text-[15px] text-gray-900">{item.name}</td>
-                        <td className="px-6 py-4 text-center text-[15px] text-gray-600">{item.category}</td>
+                        <td className="px-6 py-4 text-center text-[15px] text-gray-600">{displayCategory}</td>
                         <td className="px-6 py-4 text-center text-[15px] text-gray-900">
-                          {item.quantity} {item.unit || ''}
+                          {displayQuantity}
                         </td>
                         <td className="px-6 py-4 text-center text-[15px] text-gray-600">
-                          {item.min_quantity} {item.unit || ''}
+                          {displayMinQuantity}
                         </td>
                         <td className="px-6 py-4 text-center text-[15px] text-gray-900">
-                          ₩{item.price.toLocaleString()}
+                          {displayPrice}
                         </td>
                         <td className="px-6 py-4 text-center">
                           <span

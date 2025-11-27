@@ -62,8 +62,21 @@ class ApiClient {
     });
   }
 
-  async postFile<T>(endpoint: string, file: File): Promise<T> {
-    const url = `${this.baseUrl}${endpoint}`;
+  async postFile<T>(
+    endpoint: string,
+    file: File,
+    params?: Record<string, string | number>
+  ): Promise<T> {
+    let url = `${this.baseUrl}${endpoint}`;
+    if (params) {
+      const searchParams = new URLSearchParams();
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          searchParams.append(key, String(value));
+        }
+      });
+      url += `?${searchParams.toString()}`;
+    }
     const formData = new FormData();
     formData.append('file', file);
 
@@ -293,24 +306,29 @@ export const storeApi = {
     api.put<NotificationSettings>('/store/notifications', data),
 };
 
+export interface MenuIngredient {
+  ingredient_name: string;
+  quantity: number;
+  unit: string;
+}
+
 export interface MenuItem {
   id: number;
   name: string;
-  category: string;
-  quantity: number;
-  min_quantity: number;
-  unit: string;
-  price: number;
-  status: 'sufficient' | 'low' | 'out_of_stock';
-  created_at: string;
-  updated_at: string;
+  ingredients: MenuIngredient[];
 }
 
 export interface MenuUploadResponse {
   success: boolean;
+  mode: 'add' | 'reset';
   message: string;
-  items_created: number;
-  items_updated: number;
+  menus_count: number;
+  menus_created: number;
+  menus_updated: number;
+  ingredients_registered: number;
+  ingredient_names?: string[];
+  total_inventory_count?: number;
+  ingredient_inventory_count?: number;
   errors?: string[];
 }
 
@@ -321,6 +339,7 @@ export const menuApi = {
     if (category) params.category = category;
     return api.get<MenuItem[]>('/menus', params);
   },
-  uploadCsv: (file: File) => api.postFile<MenuUploadResponse>('/menus/upload', file),
+  uploadCsv: (file: File, mode: 'add' | 'reset') =>
+    api.postFile<MenuUploadResponse>('/menus/upload-csv', file, { mode }),
 };
 
