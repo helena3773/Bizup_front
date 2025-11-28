@@ -284,9 +284,9 @@ export function MenuTab({ activeTab = 'menu', onTabChange }: MenuTabProps) {
                       key={menu.id}
                       className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors"
                     >
-                      <td className="px-6 py-4 text-center text-[15px] text-gray-900">{menu.name}</td>
-                      <td className="px-6 py-4 text-center text-[15px] text-gray-600">{menu.ingredients.length}개</td>
-                      <td className="px-6 py-4 text-center text-[14px] text-gray-500">
+                      <td className="px-6 py-6 text-center text-[15px] text-gray-900">{menu.name}</td>
+                      <td className="px-6 py-6 text-center text-[15px] text-gray-600">{menu.ingredients.length}개</td>
+                      <td className="px-6 py-6 text-center text-[14px] text-gray-500">
                         {menu.ingredients.slice(0, 3).map((ing) => `${ing.ingredient_name}`).join(', ')}
                         {menu.ingredients.length > 3 && ' 외'}
                       </td>

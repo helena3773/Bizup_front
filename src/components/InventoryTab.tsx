@@ -2,6 +2,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
+import { Badge } from './ui/badge';
 import { Plus, Search, Edit2, Loader2, Trash2, RefreshCw, Pause, Play } from 'lucide-react';
 import { inventoryApi, InventoryItem, InventoryStats } from '../lib/api';
 import { toast } from 'sonner';
@@ -27,6 +28,7 @@ export function InventoryTab({ activeTab = 'inventory', onTabChange }: Inventory
   const [editing, setEditing] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true); // 자동 새로고침 활성화
   const refreshInterval = 5000; // 5초마다 새로고침
+  const [highlightedItems, setHighlightedItems] = useState<Set<number>>(new Set()); // 깜빡이는 항목들
   const [needsSetup, setNeedsSetup] = useState(false);
   const [autoRefreshLocked, setAutoRefreshLocked] = useState(false);
 
@@ -82,12 +84,15 @@ export function InventoryTab({ activeTab = 'inventory', onTabChange }: Inventory
       const data = await inventoryApi.getAll(search);
 
       const requiresSetup = handleSetupGuard(data);
+      const newHighlightedItems = new Set<number>();
 
       if (!requiresSetup && previousInventory.length > 0) {
         data.forEach((newItem) => {
           const oldItem = previousInventory.find((item) => item.id === newItem.id);
           if (oldItem) {
             if (newItem.quantity < oldItem.quantity) {
+              newHighlightedItems.add(newItem.id);
+
               if (oldItem.quantity > oldItem.min_quantity && newItem.quantity <= newItem.min_quantity) {
                 toast.warning(`${newItem.name} 재고가 부족합니다! (${newItem.quantity}${newItem.unit} 남음)`);
               }
@@ -97,6 +102,20 @@ export function InventoryTab({ activeTab = 'inventory', onTabChange }: Inventory
             }
           }
         });
+      } else if (requiresSetup && highlightedItems.size > 0) {
+        setHighlightedItems(new Set());
+      }
+      
+      if (!requiresSetup && newHighlightedItems.size > 0) {
+        setHighlightedItems(newHighlightedItems);
+        
+        setTimeout(() => {
+          setHighlightedItems((prev) => {
+            const updated = new Set(prev);
+            newHighlightedItems.forEach((id) => updated.delete(id));
+            return updated;
+          });
+        }, 2000);
       }
       
       setInventory(data);
@@ -319,6 +338,24 @@ export function InventoryTab({ activeTab = 'inventory', onTabChange }: Inventory
   };
 
   return (
+    <>
+      <style>{`
+        @keyframes inventoryFlash {
+          0% {
+            background-color: #e0f2fe;
+          }
+          50% {
+            background-color: #bae6fd;
+          }
+          100% {
+            background-color: transparent;
+          }
+        }
+        
+        .inventory-highlight {
+          animation: inventoryFlash 0.6s ease-in-out 3;
+        }
+      `}</style>
       <div 
         id="inventory-tab"
         className="-mx-6 -mt-6 -mb-6" 
@@ -334,100 +371,133 @@ export function InventoryTab({ activeTab = 'inventory', onTabChange }: Inventory
       >
         {onTabChange && <TabNavigation activeTab={activeTab} onTabChange={onTabChange} tabId="inventory-tab" />}
         <div className="container mx-auto px-6 max-w-7xl flex flex-col" style={{ minHeight: 'calc(100vh - 3rem)', paddingTop: '1.5rem' }} >
-        <div className="flex items-center justify-between gap-4" style={{ marginBottom: '45px' }}>
-          <div>
-            <h2 className="text-2xl font-medium text-gray-900" style={{ fontSize: '36px', marginLeft: '5px', marginTop: '6.5px' }}>재고 현황</h2>
-            {autoRefresh && (
-              <p className="text-sm text-gray-500 mt-1" style={{ marginLeft: '5px' }}>
-                실시간 업데이트 중... ({refreshInterval / 1000}초마다)
-              </p>
-            )}
-            {autoRefreshLocked && (
-              <p className="text-sm text-blue-600 mt-1" style={{ marginLeft: '5px' }}>
-                필수 정보를 입력할 때까지 실시간 업데이트가 잠시 멈춰 있어요.
-              </p>
-            )}
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => {
-                if (autoRefreshLocked) {
-                  toast.info('초기화를 먼저 완료해 주세요!');
-                  return;
+        <div style={{ marginBottom: '45px' }}>
+          <h2 className="text-2xl font-medium text-gray-900" style={{ fontSize: '36px', marginLeft: '5px', marginTop: '6.5px' }}>재고 현황</h2>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 flex-1" style={{ minHeight: 'calc(100vh - 200px)', marginTop: '2px' }}>
+        {/* Description */}
+        <div className="p-6 border-b border-gray-100">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <div className="text-gray-600" style={{ fontSize: '17px', marginLeft: '6px', marginTop: '4px' }}>
+                {needsSetup ? (
+                  <>
+                    처음 등록할 때는 카테고리, 수량, 단위, 가격을 입력해주세요.
+                    <br />
+                    입력이 끝나면 재고가 자동으로 반영돼요.
+                    </>
+                ) : autoRefreshLocked ? (
+                  <>
+                    필수 정보를 입력할 때까지 실시간 업데이트가 잠시 멈춰 있어요.
+                  </>
+                ) : autoRefresh ? (
+                  <>
+                    실시간 업데이트 중... ({refreshInterval / 1000}초마다)
+                  </>
+                ) : (
+                  <>
+                    재고를 관리하고 실시간으로 업데이트할 수 있어요.
+                  </>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-3 flex-shrink-0">
+              <button
+                onClick={() => {
+                  if (autoRefreshLocked) {
+                    toast.info('초기화를 먼저 완료해 주세요!');
+                    return;
+                  }
+                  setAutoRefresh(!autoRefresh);
+                  if (!autoRefresh) {
+                    loadInventory();
+                    loadStats();
+                  }
+                }}
+                className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition-colors border"
+                style={{ 
+                  backgroundColor: autoRefresh ? '#f0f9ff' : '#ffffff',
+                  borderColor: autoRefresh ? '#3182f6' : '#e5e7eb',
+                  color: autoRefresh ? '#3182f6' : '#6b7280',
+                  fontSize: '14px'
+                }}
+                title={
+                  autoRefreshLocked
+                    ? '필수 정보를 입력하면 자동으로 재개돼요.'
+                    : autoRefresh
+                      ? '자동 새로고침 중지'
+                      : '자동 새로고침 시작'
                 }
-                setAutoRefresh(!autoRefresh);
-                if (!autoRefresh) {
+              >
+                {autoRefresh ? (
+                  <>
+                    <Pause className="w-4 h-4" />
+                    <span>일시정지</span>
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-4 h-4" />
+                    <span>시작</span>
+                  </>
+                )}
+              </button>
+              <button
+                onClick={() => {
                   loadInventory();
                   loadStats();
-                }
-              }}
-              className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition-colors border"
-              style={{ 
-                backgroundColor: autoRefresh ? '#f0f9ff' : '#ffffff',
-                borderColor: autoRefresh ? '#3182f6' : '#e5e7eb',
-                color: autoRefresh ? '#3182f6' : '#6b7280',
-                fontSize: '14px'
-              }}
-              title={
-                autoRefreshLocked
-                  ? '초기화를 먼저 완료해 주세요.'
-                  : autoRefresh
-                    ? '자동 새로고침 중지'
-                    : '자동 새로고침 시작'
-              }
-            >
-              {autoRefresh ? (
-                <>
-                  <Pause className="w-4 h-4" />
-                  <span>일시정지</span>
-                </>
-              ) : (
-                <>
-                  <Play className="w-4 h-4" />
-                  <span>시작</span>
-                </>
-              )}
-            </button>
-            <button
-              onClick={() => {
-                loadInventory();
-                loadStats();
-                toast.success('재고를 새로고침했습니다.');
-              }}
-              className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition-colors border border-gray-300 hover:bg-gray-50"
-              style={{ fontSize: '14px' }}
-              title="지금 새로고침"
-            >
-              <RefreshCw className="w-4 h-4" />
-              <span>새로고침</span>
-            </button>
-            <button
-              onClick={() => setIsDialogOpen(true)}
-              className="flex items-center justify-center gap-3 text-white rounded-full transition-colors"
-              style={{ backgroundColor: '#3182f6', fontSize: '18px', padding: '14px 28px', fontWeight: 600 }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#2563eb';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#3182f6';
-              }}
-            >
-              <Plus className="w-6 h-6" />
-              재고 추가
-            </button>
+                  toast.success('재고를 새로고침했습니다.');
+                }}
+                className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition-colors border border-gray-300 hover:bg-gray-50"
+                style={{ fontSize: '14px' }}
+                title="지금 새로고침"
+              >
+                <RefreshCw className="w-4 h-4" />
+                <span>새로고침</span>
+              </button>
+              <button
+                onClick={() => setIsDialogOpen(true)}
+                className="flex items-center justify-center gap-3 text-white rounded-full transition-colors"
+                style={{ backgroundColor: '#3182f6', fontSize: '18px', padding: '14px 28px', fontWeight: 600 }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#2563eb';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#3182f6';
+                }}
+              >
+                <Plus className="w-6 h-6" />
+                재고 추가
+              </button>
+            </div>
           </div>
         </div>
 
-        {needsSetup && (
-          <div className="mb-6 rounded-2xl border border-blue-100 bg-blue-50 px-5 py-4 text-sm text-blue-900">
-            <p className="font-semibold text-[15px]">초기화할 때는 카테고리, 현재 수량, 최소 수량, 단위, 가격을 직접 입력해주세요!</p>
-            <p className="mt-1 text-blue-800">
-              모든 항목을 입력하면 실시간 재고 반영이 자동으로 시작됩니다.
+        {/* Stats */}
+        <div className="flex gap-6 p-6 border-b border-gray-100">
+          <div className="flex-1 rounded-lg border border-gray-200 bg-white p-4">
+            <p className="text-[13px] text-gray-500 mb-1">전체 재고</p>
+            <p className="text-[20px] text-gray-900 font-medium">
+              {stats?.total_items ?? inventory.length}개
             </p>
           </div>
-        )}
+          <div className="flex-1 rounded-lg border border-gray-200 bg-white p-4">
+            <p className="text-[13px] text-gray-500 mb-1">재고 부족</p>
+            <p className="text-[20px] text-gray-900 font-medium">
+              {stats?.low_stock_count ??
+                inventory.filter(
+                  (item) => item.quantity <= item.min_quantity && item.quantity > 0
+                ).length}개
+            </p>
+          </div>
+          <div className="flex-1 rounded-lg border border-gray-200 bg-white p-4">
+            <p className="text-[13px] text-gray-500 mb-1">품절 상품</p>
+            <p className="text-[20px] text-gray-900 font-medium">
+              {stats?.out_of_stock_count ??
+                inventory.filter((item) => item.quantity === 0).length}개
+            </p>
+          </div>
+        </div>
 
-        <div className="bg-white rounded-xl border border-gray-200 flex-1" style={{ minHeight: 'calc(100vh - 200px)', marginTop: '2px' }} >
         {/* Search */}
         <div className="p-6 border-b border-gray-100">
           <div className="flex flex-col sm:flex-row gap-6">
@@ -520,33 +590,6 @@ export function InventoryTab({ activeTab = 'inventory', onTabChange }: Inventory
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="flex gap-6 p-6 border-b border-gray-100">
-          <div className="flex-1 rounded-lg border border-gray-200 bg-white p-4">
-            <p className="text-[13px] text-gray-500 mb-1">전체 재고</p>
-            <p className="text-[20px] text-gray-900 font-medium">
-              {stats?.total_items ?? inventory.length}개
-            </p>
-          </div>
-          <div className="flex-1 rounded-lg border border-gray-200 bg-white p-4">
-            <p className="text-[13px] text-gray-500 mb-1">부족 위험</p>
-            <p className="text-[20px] text-gray-900 font-medium">
-              {stats?.low_stock_count ??
-                inventory.filter(
-                  (item) => item.quantity <= item.min_quantity && item.quantity > 0
-                ).length}
-              개
-            </p>
-          </div>
-          <div className="flex-1 rounded-lg border border-gray-200 bg-white p-4">
-            <p className="text-[13px] text-gray-500 mb-1">품절 수</p>
-            <p className="text-[20px] text-gray-900 font-medium">
-              {stats?.out_of_stock_count ??
-                inventory.filter((item) => item.quantity === 0).length}
-              개
-            </p>
-          </div>
-        </div>
 
         {/* Table */}
         <div className="overflow-x-auto">
@@ -592,48 +635,60 @@ export function InventoryTab({ activeTab = 'inventory', onTabChange }: Inventory
                     const isLowStock = item.quantity > 0 && item.quantity < item.min_quantity;
                     const placeholderItem = isPlaceholderItem(item);
                     let status = '정상';
-                    let statusColor = 'text-green-600 bg-green-50';
+                    let statusVariant: 'default' | 'secondary' | 'destructive' = 'secondary';
+                    let statusClassName = '';
                     if (placeholderItem) {
-                      status = '-';
-                      statusColor = 'text-sky-700 bg-sky-50';
+                      status = '초기화 필요';
+                      statusVariant = 'secondary';
+                      statusClassName = 'text-sky-700 bg-sky-50';
                     } else if (isOutOfStock) {
                       status = '품절';
-                      statusColor = 'text-red-600 bg-red-50';
+                      statusVariant = 'destructive';
+                      statusClassName = 'text-red-600 bg-red-50 text-[12px] font-semibold';
                     } else if (isLowStock) {
                       status = '부족';
-                      statusColor = 'text-orange-600 bg-orange-50';
+                      statusVariant = 'default';
+                      statusClassName = 'text-orange-600 bg-orange-50 text-[12px] font-semibold';
+                    } else {
+                      statusVariant = 'secondary';
+                      statusClassName = 'text-green-600 bg-green-50 text-[12px] font-semibold';
                     }
 
                     const displayCategory = item.category === '-' ? '-' : item.category || '-';
-                    const quantityText = placeholderItem ? '-' : item.quantity.toString();
-                    const minQuantityText = placeholderItem ? '-' : item.min_quantity.toString();
-                    const unitSuffix = !placeholderItem && item.unit ? ` ${item.unit}` : '';
+                    const displayQuantity = placeholderItem
+                      ? '-'
+                      : `${item.quantity}${item.unit ? ` ${item.unit}` : ''}`;
+                    const displayMinQuantity = placeholderItem
+                      ? '-'
+                      : `${item.min_quantity}${item.unit ? ` ${item.unit}` : ''}`;
                     const displayPrice = placeholderItem ? '-' : `₩${item.price.toLocaleString()}`;
+
+                    const isHighlighted = highlightedItems.has(item.id);
 
                     return (
                       <tr
                         key={item.id}
-                        className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors"
+                        className={`border-b border-gray-50 hover:bg-gray-50/50 transition-colors ${
+                          isHighlighted ? 'inventory-highlight' : ''
+                        }`}
                       >
-                        <td className="px-6 py-4 text-center text-[15px] text-gray-900">{item.name}</td>
-                        <td className="px-6 py-4 text-center text-[15px] text-gray-600">{displayCategory}</td>
-                        <td className="px-6 py-4 text-center text-[15px] text-gray-900">
-                          {quantityText}{unitSuffix}
+                        <td className="px-6 py-4 text-center text-[15px]" style={{ color: '#4a5565' }}>{item.name}</td>
+                        <td className="px-6 py-4 text-center text-[15px]" style={{ color: '#4a5565' }}>{displayCategory}</td>
+                        <td className="px-6 py-4 text-center text-[15px]" style={{ color: '#4a5565' }}>
+                          {displayQuantity}
                         </td>
-                        <td className="px-6 py-4 text-center text-[15px] text-gray-600">
-                          {minQuantityText}{unitSuffix}
+                        <td className="px-6 py-4 text-center text-[15px]" style={{ color: '#4a5565' }}>
+                          {displayMinQuantity}
                         </td>
-                        <td className="px-6 py-4 text-center text-[15px] text-gray-900">
+                        <td className="px-6 py-4 text-center text-[15px]" style={{ color: '#4a5565' }}>
                           {displayPrice}
                         </td>
                         <td className="px-6 py-4 text-center">
-                          <span
-                            className={`inline-block px-2.5 py-1 rounded-md text-[13px] ${statusColor}`}
-                          >
+                          <Badge variant={statusVariant} className={statusClassName}>
                             {status}
-                          </span>
+                          </Badge>
                         </td>
-                        <td className="px-6 py-4 text-center text-[15px] text-gray-600">
+                        <td className="px-6 py-4 text-center text-[15px]" style={{ color: '#4a5565' }}>
                           {item.last_updated}
                         </td>
                         <td className="px-6 py-4 text-center">
@@ -682,7 +737,7 @@ export function InventoryTab({ activeTab = 'inventory', onTabChange }: Inventory
                 id="name"
                 value={newItem.name}
                 onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
-                placeholder="예: 원두두"
+                placeholder="예: 노트북 스탠드"
                 required
                 className="h-11 rounded-lg border-gray-200 bg-gray-50 text-[15px]"
               />
@@ -693,7 +748,7 @@ export function InventoryTab({ activeTab = 'inventory', onTabChange }: Inventory
                 id="category"
                 value={newItem.category}
                 onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}
-                placeholder="예: 필수 재료"
+                placeholder="예: 사무용품"
                 required
                 className="h-11 rounded-lg border-gray-200 bg-gray-50 text-[15px]"
               />
@@ -791,7 +846,7 @@ export function InventoryTab({ activeTab = 'inventory', onTabChange }: Inventory
                 id="editName"
                 value={editItem.name}
                 onChange={(e) => setEditItem({ ...editItem, name: e.target.value })}
-                placeholder="예: 원두"
+                placeholder="예: 노트북 스탠드"
                 required
                 className="h-11 rounded-lg border-gray-200 bg-gray-50 text-[15px]"
               />
@@ -802,7 +857,7 @@ export function InventoryTab({ activeTab = 'inventory', onTabChange }: Inventory
                 id="editCategory"
                 value={editItem.category}
                 onChange={(e) => setEditItem({ ...editItem, category: e.target.value })}
-                placeholder="예: 필수 재료"
+                placeholder="예: 사무용품"
                 required
                 className="h-11 rounded-lg border-gray-200 bg-gray-50 text-[15px]"
               />
@@ -887,5 +942,6 @@ export function InventoryTab({ activeTab = 'inventory', onTabChange }: Inventory
         </DialogContent>
       </Dialog>
     </div>
+    </>
   );
 }
