@@ -737,7 +737,7 @@ export function InventoryTab({ activeTab = 'inventory', onTabChange }: Inventory
                 id="name"
                 value={newItem.name}
                 onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
-                placeholder="예: 노트북 스탠드"
+                placeholder="예: 우유"
                 required
                 className="h-11 rounded-lg border-gray-200 bg-gray-50 text-[15px]"
               />
@@ -748,7 +748,7 @@ export function InventoryTab({ activeTab = 'inventory', onTabChange }: Inventory
                 id="category"
                 value={newItem.category}
                 onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}
-                placeholder="예: 사무용품"
+                placeholder="예: 필수 재료"
                 required
                 className="h-11 rounded-lg border-gray-200 bg-gray-50 text-[15px]"
               />
@@ -846,7 +846,7 @@ export function InventoryTab({ activeTab = 'inventory', onTabChange }: Inventory
                 id="editName"
                 value={editItem.name}
                 onChange={(e) => setEditItem({ ...editItem, name: e.target.value })}
-                placeholder="예: 노트북 스탠드"
+                placeholder="예: 우유"
                 required
                 className="h-11 rounded-lg border-gray-200 bg-gray-50 text-[15px]"
               />
@@ -857,7 +857,7 @@ export function InventoryTab({ activeTab = 'inventory', onTabChange }: Inventory
                 id="editCategory"
                 value={editItem.category}
                 onChange={(e) => setEditItem({ ...editItem, category: e.target.value })}
-                placeholder="예: 사무용품"
+                placeholder="예: 필수 재료"
                 required
                 className="h-11 rounded-lg border-gray-200 bg-gray-50 text-[15px]"
               />
