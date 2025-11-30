@@ -12,6 +12,8 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<string | null>(null);
   const scrollSourceRef = useRef<'main' | 'nav' | null>(null);
   const isInitialMountRef = useRef(true);
+  const graySectionTopRef = useRef<number | null>(null);
+  const hasReachedGrayRef = useRef(false);
 
   // 초기 마운트 시 스크롤 방지
   useEffect(() => {
@@ -75,6 +77,10 @@ export default function App() {
         const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
         const targetScroll = scrollTop + rect.top;
         
+        // 회색 영역 상단 위치 저장
+        graySectionTopRef.current = targetScroll;
+        hasReachedGrayRef.current = true;
+        
         window.scrollTo({
           top: targetScroll,
           behavior: 'smooth'
@@ -83,6 +89,34 @@ export default function App() {
       scrollSourceRef.current = null;
     }, 100);
   }, [activeTab]);
+
+  // 초기 상태로 돌아갈 때 제한 해제
+  useEffect(() => {
+    if (!activeTab) {
+      hasReachedGrayRef.current = false;
+      graySectionTopRef.current = null;
+    }
+  }, [activeTab]);
+
+  // 스크롤 제한: 회색 영역에 도달한 후에는 회색 영역 상단보다 위로 올라가지 않도록
+  useEffect(() => {
+    const handleScroll = () => {
+      if (hasReachedGrayRef.current && graySectionTopRef.current !== null) {
+        const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+        if (currentScroll < graySectionTopRef.current) {
+          window.scrollTo({
+            top: graySectionTopRef.current,
+            behavior: 'auto'
+          });
+        }
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
 
   return (
     <>

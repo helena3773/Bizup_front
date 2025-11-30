@@ -205,10 +205,18 @@ export function MenuTab({ activeTab = 'menu', onTabChange }: MenuTabProps) {
                     )}
                   </Button>
                 </div>
-                <p className="text-sm text-gray-500">
-                  • <strong>메뉴 추가</strong>: 기존 메뉴에 새 재료를 덧붙이거나 새로운 메뉴를 추가합니다.<br />
-                  • <strong>메뉴 초기화</strong>: 현재 메뉴 구성을 모두 지우고 업로드한 파일로 완전히 재구성합니다.
-                </p>
+                <div className="mt-4 p-4 rounded-lg" style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                  <div className="flex flex-col gap-3" style={{ paddingLeft: '2px' }}>
+                    <div>
+                      <span className="text-gray-900 font-semibold" style={{ fontSize: '14px' }}>메뉴 추가</span>
+                      <p className="text-gray-600 mt-1" style={{ fontSize: '14px', lineHeight: '1.5' }}>기존 메뉴에 새 재료를 덧붙이거나 새로운 메뉴를 추가해요</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-900 font-semibold" style={{ fontSize: '14px' }}>메뉴 초기화</span>
+                      <p className="text-gray-600 mt-1" style={{ fontSize: '14px', lineHeight: '1.5' }}>현재 메뉴 구성을 모두 지우고 업로드한 파일로 완전히 재구성해요</p>
+                    </div>
+                  </div>
+                </div>
               </div>
               {selectedFile && (
                 <div className="flex items-center gap-2 text-sm text-gray-600" style={{marginLeft: '8px'}}>

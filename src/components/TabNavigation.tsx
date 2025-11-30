@@ -20,6 +20,12 @@ export function TabNavigation({ activeTab, onTabChange, tabId }: TabNavigationPr
 
   useEffect(() => {
     const handleScroll = () => {
+      // activeTab이 있으면 항상 표시 (회색 영역에 도달한 상태)
+      if (activeTab) {
+        setIsVisible(true);
+        return;
+      }
+
       const tabElement = document.getElementById(tabId);
       if (tabElement) {
         const rect = tabElement.getBoundingClientRect();
@@ -61,7 +67,7 @@ export function TabNavigation({ activeTab, onTabChange, tabId }: TabNavigationPr
       clearTimeout(timeoutId1);
       clearTimeout(timeoutId2);
     };
-  }, [tabId]);
+  }, [tabId, activeTab]);
 
   if (!isVisible) {
     return null;
@@ -90,17 +96,18 @@ export function TabNavigation({ activeTab, onTabChange, tabId }: TabNavigationPr
               fontSize: '15px',
               fontWeight: 600,
               color: isActive ? '#3182f6' : 'rgba(49, 130, 246, 0.6)',
-              backgroundColor: isActive ? 'rgba(239, 246, 255, 0.8)' : 'transparent',
+              backgroundColor: isActive ? 'rgba(219, 234, 254, 1)' : 'transparent',
               opacity: isActive ? 1 : 0.7
             }}
             onMouseEnter={(e) => {
-              if (!isActive) {
-                e.currentTarget.style.opacity = '1';
-                e.currentTarget.style.backgroundColor = 'rgba(239, 246, 255, 0.5)';
-              }
+              e.currentTarget.style.opacity = '1';
+              e.currentTarget.style.backgroundColor = 'rgba(219, 234, 254, 1)';
             }}
             onMouseLeave={(e) => {
-              if (!isActive) {
+              if (isActive) {
+                e.currentTarget.style.opacity = '1';
+                e.currentTarget.style.backgroundColor = 'rgba(219, 234, 254, 1)';
+              } else {
                 e.currentTarget.style.opacity = '0.7';
                 e.currentTarget.style.backgroundColor = 'transparent';
               }
