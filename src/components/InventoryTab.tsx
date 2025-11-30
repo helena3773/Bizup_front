@@ -864,7 +864,7 @@ export function InventoryTab({ activeTab = 'inventory', onTabChange }: Inventory
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="editQuantity" className="text-[14px] text-gray-600">현재 수량</Label>
+                <Label htmlFor="editQuantity" className="text-[14px] text-gray-600">현재 재고</Label>
                 <Input
                   id="editQuantity"
                   type="number"
@@ -877,7 +877,7 @@ export function InventoryTab({ activeTab = 'inventory', onTabChange }: Inventory
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="editMinQuantity" className="text-[14px] text-gray-600">최소 수량</Label>
+                <Label htmlFor="editMinQuantity" className="text-[14px] text-gray-600">최소 재고</Label>
                 <Input
                   id="editMinQuantity"
                   type="number"
@@ -926,7 +926,7 @@ export function InventoryTab({ activeTab = 'inventory', onTabChange }: Inventory
               <button
                 type="submit"
                 disabled={editing}
-                className="flex-1 h-11 px-4 bg-[#93C5FD] text-white rounded-lg hover:bg-[#7CB5FC] transition-colors text-[15px] disabled:opacity-60 disabled:cursor-not-allowed"
+                className="flex-1 h-11 px-4 bg-[#93C5FD] text-gray-600 rounded-lg hover:bg-[#7CB5FC] transition-colors text-[15px] disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {editing ? (
                   <>
