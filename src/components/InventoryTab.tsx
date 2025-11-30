@@ -640,7 +640,7 @@ export function InventoryTab({ activeTab = 'inventory', onTabChange }: Inventory
                     if (placeholderItem) {
                       status = '초기화 필요';
                       statusVariant = 'secondary';
-                      statusClassName = 'text-sky-700 bg-sky-50';
+                      statusClassName = 'text-sky-700 bg-sky-50 text-[11px]';
                     } else if (isOutOfStock) {
                       status = '품절';
                       statusVariant = 'destructive';
