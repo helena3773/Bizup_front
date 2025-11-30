@@ -88,7 +88,7 @@ export function OutOfStockTab({ activeTab = 'outofstock', onTabChange }: OutOfSt
         <div className="p-6 border-b border-gray-100">
           <p className="text-gray-600 flex items-center gap-2" style={{ fontSize: '17px', marginLeft: '2px' }}>
             <AlertCircle className="w-4 h-4 text-[#3182F6]" />
-            품절된 상품을 빠르게 채워 고객 이탈을 줄여 보세요.
+            품절된 메뉴를 빠르게 채워 매출을 늘려 보세요.
           </p>
         </div>
 
