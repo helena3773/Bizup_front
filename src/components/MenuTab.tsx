@@ -190,7 +190,7 @@ export function MenuTab({ activeTab = 'menu', onTabChange }: MenuTabProps) {
                     onClick={() => handleUpload('reset')}
                     disabled={!selectedFile || uploading}
                     className="flex items-center gap-2"
-                    style={{ backgroundColor: '#f87171', color: 'white' }}
+                    style={{ backgroundColor: '#6b7280', color: 'white' }}
                   >
                     {uploading && uploadingMode === 'reset' ? (
                       <>
