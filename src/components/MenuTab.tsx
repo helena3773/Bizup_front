@@ -167,7 +167,29 @@ export function MenuTab({ activeTab = 'menu', onTabChange }: MenuTabProps) {
                     }
                   `}</style>
                 </div>
-                <div className="flex flex-wrap gap-3">
+                {selectedFile && (
+                  <div className="flex items-center gap-2 text-sm text-gray-600" style={{marginLeft: '8px'}}>
+                    <FileText className="w-4 h-4" />
+                    <span>선택된 파일: {selectedFile.name}</span>
+                    <span className="text-gray-400">({(selectedFile.size / 1024).toFixed(2)} KB)</span>
+                    <button
+                      aria-label="파일 선택 해제"
+                      onClick={() => {
+                        setSelectedFile(null);
+                        const input = document.getElementById('file-upload') as HTMLInputElement;
+                        if (input) input.value = '';
+                      }}
+                      type="button"
+                      className="w-5 h-5 flex items-center justify-center text-gray-400 hover:text-red-500 transition"
+                      style={{ marginLeft: '4px' }}
+                    >
+                      <svg fill="none" viewBox="0 0 20 20" className="w-4 h-4" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 6l8 8M6 14L14 6" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
+                <div className="flex flex-wrap gap-3" style={{ marginTop: '3px' }}>
                   <Button
                     onClick={() => handleUpload('add')}
                     disabled={!selectedFile || uploading}
@@ -205,7 +227,7 @@ export function MenuTab({ activeTab = 'menu', onTabChange }: MenuTabProps) {
                     )}
                   </Button>
                 </div>
-                <div className="mt-4 p-4 rounded-lg" style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                <div className="p-4 rounded-lg" style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', marginTop: '13px' }}>
                   <div className="flex flex-col gap-3" style={{ paddingLeft: '2px' }}>
                     <div>
                       <span className="text-gray-900 font-semibold" style={{ fontSize: '14px' }}>메뉴 추가</span>
@@ -218,28 +240,6 @@ export function MenuTab({ activeTab = 'menu', onTabChange }: MenuTabProps) {
                   </div>
                 </div>
               </div>
-              {selectedFile && (
-                <div className="flex items-center gap-2 text-sm text-gray-600" style={{marginLeft: '8px'}}>
-                  <FileText className="w-4 h-4" />
-                  <span>선택된 파일: {selectedFile.name}</span>
-                  <span className="text-gray-400">({(selectedFile.size / 1024).toFixed(2)} KB)</span>
-                  <button
-                    aria-label="파일 선택 해제"
-                    onClick={() => {
-                      setSelectedFile(null);
-                      const input = document.getElementById('file-upload') as HTMLInputElement;
-                      if (input) input.value = '';
-                    }}
-                    type="button"
-                    className="w-5 h-5 flex items-center justify-center text-gray-400 hover:text-red-500 transition"
-                    style={{ marginLeft: '4px' }}
-                  >
-                    <svg fill="none" viewBox="0 0 20 20" className="w-4 h-4" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 6l8 8M6 14L14 6" />
-                    </svg>
-                  </button>
-                </div>
-              )}
             </div>
           </div>
 
