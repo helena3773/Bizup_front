@@ -36,20 +36,20 @@ export default function App() {
     
     // nav 소스일 때는 현재 스크롤 위치 저장
     if (source === 'nav') {
-      const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
       scrollSourceRef.current = source;
       setActiveTab(tab);
       
-      // 탭 변경 후 스크롤 위치 유지
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
+      // 탭 변경 시 상단으로 부드럽게 스크롤
+      setTimeout(() => {
+        const graySection = document.getElementById('gray-section');
+        if (graySection && graySectionTopRef.current !== null) {
           window.scrollTo({
-            top: currentScroll,
-            behavior: 'auto'
+            top: graySectionTopRef.current,
+            behavior: 'smooth'
           });
-          scrollSourceRef.current = null;
-        });
-      });
+        }
+        scrollSourceRef.current = null;
+      }, 50);
       return;
     }
     
@@ -81,13 +81,14 @@ export default function App() {
         graySectionTopRef.current = targetScroll;
         hasReachedGrayRef.current = true;
         
+        // 부드러운 스크롤 애니메이션
         window.scrollTo({
           top: targetScroll,
           behavior: 'smooth'
         });
       }
       scrollSourceRef.current = null;
-    }, 100);
+    }, 50);
   }, [activeTab]);
 
   // 초기 상태로 돌아갈 때 제한 해제

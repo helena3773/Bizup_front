@@ -609,10 +609,10 @@ export function InventoryTab({ activeTab = 'inventory', onTabChange }: Inventory
                     카테고리
                   </th>
                   <th className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px]">
-                    현재 수량
+                    현재 재고
                   </th>
                   <th className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px]">
-                    최소 수량
+                    최소 재고
                   </th>
                   <th className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px]">
                     가격
@@ -634,7 +634,7 @@ export function InventoryTab({ activeTab = 'inventory', onTabChange }: Inventory
                     const isOutOfStock = item.quantity === 0;
                     const isLowStock = item.quantity > 0 && item.quantity < item.min_quantity;
                     const placeholderItem = isPlaceholderItem(item);
-                    let status = '정상';
+                    let status = '충분';
                     let statusVariant: 'default' | 'secondary' | 'destructive' = 'secondary';
                     let statusClassName = '';
                     if (placeholderItem) {
