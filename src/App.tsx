@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
 import { Package, TrendingUp, AlertTriangle, Settings, Utensils } from 'lucide-react';
 import { InventoryTab } from './components/InventoryTab';
@@ -6,14 +6,21 @@ import { OrderRecommendationTab } from './components/OrderRecommendationTab';
 import { OutOfStockTab } from './components/OutOfStockTab';
 import { SettingsTab } from './components/SettingsTab';
 import { MenuTab } from './components/MenuTab';
+import { Login } from './components/Login';
 import { Toaster } from './components/ui/sonner';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // 초기 마운트 시 스크롤 방지
+  // 초기 마운트 시 항상 로그인부터 시작하도록 토큰 초기화 + 스크롤 방지
   useEffect(() => {
-    window.scrollTo(0, 0);
+    if (typeof window !== 'undefined') {
+      // 페이지를 새로 열 때마다 이전 로그인 정보를 제거
+      window.localStorage.removeItem('bizup_access_token');
+      window.localStorage.removeItem('bizup_username');
+      window.scrollTo(0, 0);
+    }
   }, []);
 
   // 탭 변경 처리
@@ -34,7 +41,9 @@ export default function App() {
 
   return (
     <>
-      {!activeTab ? (
+      {!isAuthenticated ? (
+        <Login onLoginSuccess={() => setIsAuthenticated(true)} />
+      ) : !activeTab ? (
         /* 초기 화면 - 하얀색 배경 */
         <div className="min-h-screen bg-white" style={{ minHeight: '100vh' }}>
           <div 
