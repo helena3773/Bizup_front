@@ -18,16 +18,22 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loginDialogOpen, setLoginDialogOpen] = useState(false);
+  const [registerDialogOpen, setRegisterDialogOpen] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [registerUsername, setRegisterUsername] = useState('');
+  const [registerPassword, setRegisterPassword] = useState('');
+  const [registerEmail, setRegisterEmail] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
+  const [registerLoading, setRegisterLoading] = useState(false);
 
-  // 초기 마운트 시 항상 로그인부터 시작하도록 토큰 초기화 + 스크롤 방지
+  // 초기 마운트 시 localStorage에서 토큰 확인하여 로그인 상태 복원
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      // 페이지를 새로 열 때마다 이전 로그인 정보를 제거
-      window.localStorage.removeItem('bizup_access_token');
-      window.localStorage.removeItem('bizup_username');
+      const token = window.localStorage.getItem('bizup_access_token');
+      if (token) {
+        setIsAuthenticated(true);
+      }
       window.scrollTo(0, 0);
     }
   }, []);
@@ -58,6 +64,37 @@ export default function App() {
       toast.error('아이디 또는 비밀번호가 올바르지 않습니다.');
     } finally {
       setLoginLoading(false);
+    }
+  };
+
+  const handleRegister = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!registerUsername || !registerPassword) {
+      toast.error('아이디와 비밀번호를 입력해주세요.');
+      return;
+    }
+
+    try {
+      setRegisterLoading(true);
+      const res = await authApi.register({
+        username: registerUsername,
+        password: registerPassword,
+        email: registerEmail || undefined,
+      });
+
+      toast.success(res.message);
+      setRegisterDialogOpen(false);
+      setRegisterUsername('');
+      setRegisterPassword('');
+      setRegisterEmail('');
+      // 회원가입 후 로그인 다이얼로그 열기
+      setLoginDialogOpen(true);
+    } catch (error: any) {
+      console.error(error);
+      const errorMessage = error?.message || '회원가입에 실패했습니다.';
+      toast.error(errorMessage);
+    } finally {
+      setRegisterLoading(false);
     }
   };
 
@@ -329,8 +366,7 @@ export default function App() {
                   </Button>
                   <Button
                     onClick={() => {
-                      // TODO: 회원가입 기능 구현
-                      toast.info('회원가입 기능은 준비 중입니다.');
+                      setRegisterDialogOpen(true);
                     }}
                     className="flex items-center justify-center gap-2 rounded-full transition-all duration-200"
                     style={{
@@ -410,9 +446,7 @@ export default function App() {
                   로그인
                 </Button>
                 <Button
-                  onClick={() => {
-                    toast.info('회원가입 기능은 준비 중입니다.');
-                  }}
+                  onClick={() => setRegisterDialogOpen(true)}
                   className="flex items-center justify-center gap-2 rounded-full transition-all duration-200"
                   style={{
                     fontSize: '18px',
@@ -528,7 +562,7 @@ export default function App() {
                 autoComplete="username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="admin"
+                placeholder="아이디를 입력하세요."
                 className="h-10 text-sm mb-1"
               />
 
@@ -572,6 +606,100 @@ export default function App() {
           <p className="mt-4 text-[11px] text-center text-slate-400">
             이 로그인은 데모 용도이며<br />
             실제 서비스에서는 별도의 계정 및 보안 설정이 필요합니다.
+          </p>
+        </DialogContent>
+      </Dialog>
+
+      {/* 회원가입 다이얼로그 */}
+      <Dialog open={registerDialogOpen} onOpenChange={setRegisterDialogOpen}>
+        <DialogContent className="bg-white">
+          <DialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-[#f2f4f7] text-[#3182f6]">
+                <User className="w-5 h-5" />
+              </div>
+              <DialogTitle className="text-xl font-semibold text-slate-900">회원가입</DialogTitle>
+            </div>
+          </DialogHeader>
+
+          <form onSubmit={handleRegister} className="mt-3">
+            <div>
+              <Label htmlFor="register-username" className="text-xs text-slate-600 block mb-1">
+                아이디
+              </Label>
+              <Input
+                id="register-username"
+                type="text"
+                autoComplete="username"
+                value={registerUsername}
+                onChange={(e) => setRegisterUsername(e.target.value)}
+                placeholder="아이디를 입력하세요"
+                className="h-10 text-sm mb-1"
+              />
+
+              <Label htmlFor="register-password" className="text-xs text-slate-600 block mb-1">
+                비밀번호
+              </Label>
+              <Input
+                id="register-password"
+                type="password"
+                autoComplete="new-password"
+                value={registerPassword}
+                onChange={(e) => setRegisterPassword(e.target.value)}
+                placeholder="비밀번호를 입력하세요"
+                className="h-10 text-sm mb-1"
+              />
+
+              <Label htmlFor="register-email" className="text-xs text-slate-600 block mb-1">
+                이메일 (선택)
+              </Label>
+              <Input
+                id="register-email"
+                type="email"
+                autoComplete="email"
+                value={registerEmail}
+                onChange={(e) => setRegisterEmail(e.target.value)}
+                placeholder="이메일을 입력하세요 (선택사항)"
+                className="h-10 text-sm"
+              />
+            </div>
+
+            <div className="flex gap-3" style={{ marginTop: '20px' }}>
+              <Button
+                type="button"
+                onClick={() => {
+                  setRegisterDialogOpen(false);
+                  setRegisterUsername('');
+                  setRegisterPassword('');
+                  setRegisterEmail('');
+                }}
+                className="flex-1 h-10 text-sm font-medium"
+                variant="outline"
+              >
+                취소
+              </Button>
+              <Button
+                type="submit"
+                className="flex-1 h-10 text-sm font-medium"
+                disabled={registerLoading}
+              >
+                {registerLoading ? '가입 중...' : '회원가입'}
+              </Button>
+            </div>
+          </form>
+
+          <p className="mt-4 text-[11px] text-center text-slate-400">
+            이미 계정이 있으신가요?{' '}
+            <button
+              type="button"
+              onClick={() => {
+                setRegisterDialogOpen(false);
+                setLoginDialogOpen(true);
+              }}
+              className="text-[#3182f6] hover:underline"
+            >
+              로그인
+            </button>
           </p>
         </DialogContent>
       </Dialog>

@@ -131,8 +131,20 @@ export interface LoginResponse {
   username: string;
 }
 
+export interface RegisterRequest {
+  username: string;
+  password: string;
+  email?: string;
+}
+
+export interface RegisterResponse {
+  message: string;
+  username: string;
+}
+
 export const authApi = {
   login: (data: LoginRequest) => api.post<LoginResponse>('/auth/login', data),
+  register: (data: RegisterRequest) => api.post<RegisterResponse>('/auth/register', data),
 };
 
 export interface InventoryItem {
