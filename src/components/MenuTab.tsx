@@ -268,7 +268,7 @@ export function MenuTab({ activeTab = 'menu', onTabChange }: MenuTabProps) {
             ) : filteredMenus.length === 0 ? (
               <div className="py-16 text-center">
                 <p className="text-[15px] text-gray-400">
-                  {searchQuery || selectedCategory ? '검색 결과가 없어요.' : '등록된 메뉴가 아직 없어요.'}
+                  {searchQuery ? '검색 결과가 없어요.' : '등록된 메뉴가 아직 없어요.'}
                 </p>
               </div>
             ) : (
