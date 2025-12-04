@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -28,7 +28,6 @@ export function InventoryTab({ activeTab = 'inventory', onTabChange }: Inventory
   const [editing, setEditing] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true); // 자동 새로고침 활성화
   const refreshInterval = 5000; // 5초마다 새로고침
-  const [highlightedItems, setHighlightedItems] = useState<Set<number>>(new Set()); // 깜빡이는 항목들
   const [needsSetup, setNeedsSetup] = useState(false);
   const [autoRefreshLocked, setAutoRefreshLocked] = useState(false);
 
@@ -84,15 +83,12 @@ export function InventoryTab({ activeTab = 'inventory', onTabChange }: Inventory
       const data = await inventoryApi.getAll(search);
 
       const requiresSetup = handleSetupGuard(data);
-      const newHighlightedItems = new Set<number>();
 
       if (!requiresSetup && previousInventory.length > 0) {
         data.forEach((newItem) => {
           const oldItem = previousInventory.find((item) => item.id === newItem.id);
           if (oldItem) {
             if (newItem.quantity < oldItem.quantity) {
-              newHighlightedItems.add(newItem.id);
-
               if (oldItem.quantity > oldItem.min_quantity && newItem.quantity <= newItem.min_quantity) {
                 toast.warning(`${newItem.name} 재고가 부족합니다! (${newItem.quantity}${newItem.unit} 남음)`);
               }
@@ -102,20 +98,6 @@ export function InventoryTab({ activeTab = 'inventory', onTabChange }: Inventory
             }
           }
         });
-      } else if (requiresSetup && highlightedItems.size > 0) {
-        setHighlightedItems(new Set());
-      }
-      
-      if (!requiresSetup && newHighlightedItems.size > 0) {
-        setHighlightedItems(newHighlightedItems);
-        
-        setTimeout(() => {
-          setHighlightedItems((prev) => {
-            const updated = new Set(prev);
-            newHighlightedItems.forEach((id) => updated.delete(id));
-            return updated;
-          });
-        }, 2000);
       }
       
       setInventory(data);
@@ -207,11 +189,13 @@ export function InventoryTab({ activeTab = 'inventory', onTabChange }: Inventory
     return requiresSetup;
   };
 
-  const loadInventory = async () => {
+  const loadInventory = async (forceSearchQuery?: string) => {
     try {
       setLoading(true);
-      // searchQuery가 빈 문자열이거나 공백만 있으면 undefined로 전달
-      const search = searchQuery?.trim() || undefined;
+      // forceSearchQuery가 제공되면 사용, 아니면 현재 searchQuery 사용
+      const search = forceSearchQuery !== undefined 
+        ? (forceSearchQuery.trim() || undefined)
+        : (searchQuery?.trim() || undefined);
       const data = await inventoryApi.getAll(search);
       console.log('재고 목록 로드됨:', data.length, '개', search ? `(검색: "${search}")` : '(전체)');
       console.log('재고 항목들:', data.map(item => `${item.name} (${item.category})`).slice(0, 10));
@@ -234,17 +218,31 @@ export function InventoryTab({ activeTab = 'inventory', onTabChange }: Inventory
     }
   };
 
-  // 상품명/카테고리/카테고리필터 동시 적용 필터
-  const filteredInventory = inventory.filter(
-    (item) => {
-      const categoryText = (item.category || '').toLowerCase();
-      const matchesSearch =
-        item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        categoryText.includes(searchQuery.toLowerCase());
-      const matchesCategory = !selectedInventoryCategory || item.category === selectedInventoryCategory;
-      return matchesSearch && matchesCategory;
-    }
-  );
+  // 상품명/카테고리/카테고리필터 동시 적용 필터 (useMemo로 최적화)
+  const filteredInventory = useMemo(() => {
+    const result = inventory.filter(
+      (item) => {
+        // 검색어가 없거나 공백만 있으면 검색 필터 통과
+        const searchTerm = (searchQuery || '').trim().toLowerCase();
+        const matchesSearch = !searchTerm || 
+          item.name.toLowerCase().includes(searchTerm) ||
+          (item.category || '').toLowerCase().includes(searchTerm);
+        
+        // 카테고리 필터: 선택된 카테고리가 없으면 모두 통과
+        const matchesCategory = !selectedInventoryCategory || item.category === selectedInventoryCategory;
+        
+        return matchesSearch && matchesCategory;
+      }
+    );
+    console.log('필터링 결과:', {
+      total: inventory.length,
+      filtered: result.length,
+      searchQuery,
+      selectedCategory: selectedInventoryCategory,
+      items: result.map(i => i.name)
+    });
+    return result;
+  }, [inventory, searchQuery, selectedInventoryCategory]);
 
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -299,23 +297,50 @@ export function InventoryTab({ activeTab = 'inventory', onTabChange }: Inventory
 
     try {
       setEditing(true);
-      await inventoryApi.update(editingItemId, {
+      // 자동 새로고침 잠시 중지 (수정 중 덮어쓰기 방지)
+      const wasAutoRefresh = autoRefresh;
+      if (wasAutoRefresh) {
+        setAutoRefresh(false);
+      }
+      
+      // API 호출
+      const updatedItem = await inventoryApi.update(editingItemId, {
         name: editItem.name,
         category: editItem.category,
-        quantity: parseInt(editItem.quantity) || 0,
+        quantity: parseFloat(editItem.quantity) || 0,
         unit: editItem.unit || '',
-        min_quantity: parseInt(editItem.minQuantity) || 0,
-        price: parseInt(editItem.price) || 0,
+        min_quantity: parseFloat(editItem.minQuantity) || 0,
+        price: parseFloat(editItem.price) || 0,
       });
+      
+      console.log('수정된 항목:', updatedItem);
+      
       toast.success('재고 정보를 업데이트했어요.');
       setIsEditDialogOpen(false);
       setEditingItemId(null);
       setEditItem({ name: '', category: '', quantity: '', unit: '', minQuantity: '', price: '' });
-      loadInventory();
-      loadStats();
+      
+      // 검색어와 필터 강제 초기화 (수정된 항목이 보이도록)
+      setSearchQuery('');
+      setSelectedInventoryCategory('');
+      
+      // 통계 새로고침
+      await loadStats();
+      
+      // loadInventory를 강제로 빈 검색어로 호출하여 전체 목록 로드
+      await loadInventory('');
+      
+      // 자동 새로고침 복구
+      if (wasAutoRefresh && !autoRefreshLocked) {
+        setTimeout(() => {
+          setAutoRefresh(true);
+        }, 1000); // 1초 후 복구
+      }
     } catch (error) {
       console.error('재고 수정 오류:', error);
       toast.error('재고 정보를 수정하지 못했어요. 잠시 후 다시 시도해 주세요.');
+      // 에러 발생 시 전체 목록 다시 로드
+      await loadInventory();
     } finally {
       setEditing(false);
     }
@@ -339,23 +364,6 @@ export function InventoryTab({ activeTab = 'inventory', onTabChange }: Inventory
 
   return (
     <>
-      <style>{`
-        @keyframes inventoryFlash {
-          0% {
-            background-color: #e0f2fe;
-          }
-          50% {
-            background-color: #bae6fd;
-          }
-          100% {
-            background-color: transparent;
-          }
-        }
-        
-        .inventory-highlight {
-          animation: inventoryFlash 0.6s ease-in-out 3;
-        }
-      `}</style>
       <div 
         id="inventory-tab"
         className="-mx-6 -mt-6 -mb-6" 
@@ -599,7 +607,7 @@ export function InventoryTab({ activeTab = 'inventory', onTabChange }: Inventory
               <p className="text-gray-600 mt-2 text-[15px]">재고 목록을 불러오는 중이에요…</p>
             </div>
           ) : (
-            <table className="w-full">
+            <table className="w-full" key={`inventory-table-${inventory.length}-${filteredInventory.length}`}>
               <thead>
                 <tr className="border-b border-gray-100" style={{ height: '50px' }}>
                   <th className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px]">
@@ -663,14 +671,11 @@ export function InventoryTab({ activeTab = 'inventory', onTabChange }: Inventory
                       : `${item.min_quantity}${item.unit ? ` ${item.unit}` : ''}`;
                     const displayPrice = placeholderItem ? '-' : `₩${item.price.toLocaleString()}`;
 
-                    const isHighlighted = highlightedItems.has(item.id);
-
                     return (
                       <tr
                         key={item.id}
-                        className={`border-b border-gray-50 hover:bg-gray-50/50 transition-colors ${
-                          isHighlighted ? 'inventory-highlight' : ''
-                        }`}
+                        data-item-id={item.id}
+                        className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors"
                       >
                         <td className="px-6 py-4 text-center text-[15px]" style={{ color: '#4a5565' }}>{item.name}</td>
                         <td className="px-6 py-4 text-center text-[15px]" style={{ color: '#4a5565' }}>{displayCategory}</td>
