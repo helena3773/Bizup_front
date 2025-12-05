@@ -248,8 +248,21 @@ export interface OutOfStockItem {
   status: 'critical' | 'warning' | 'recent';
 }
 
+export interface OutOfStockMenu {
+  id: number;
+  name: string;
+  missing_ingredients: string[];
+  days_out_of_stock: number;
+  status: 'critical' | 'warning' | 'recent';
+}
+
+export interface OutOfStockResponse {
+  items: OutOfStockItem[];
+  menus: OutOfStockMenu[];
+}
+
 export const outOfStockApi = {
-  getAll: () => api.get<OutOfStockItem[]>('/out-of-stock'),
+  getAll: () => api.get<OutOfStockResponse>('/out-of-stock'),
   restock: (itemId: number, quantity: number) => {
     // 쿼리 파라미터로 quantity 전달 (body 없음)
     return api.post<{ message: string; item: InventoryItem }>(`/out-of-stock/${itemId}/restock?quantity=${quantity}`);
