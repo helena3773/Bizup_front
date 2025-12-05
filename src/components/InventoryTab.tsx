@@ -638,7 +638,7 @@ export function InventoryTab({ activeTab = 'inventory', onTabChange }: Inventory
               </thead>
               <tbody>
                 {filteredInventory.length > 0 ? (
-                  filteredInventory.map((item) => {
+                  filteredInventory.map((item, index) => {
                     const isOutOfStock = item.quantity === 0;
                     const isLowStock = item.quantity > 0 && item.quantity < item.min_quantity;
                     const placeholderItem = isPlaceholderItem(item);
@@ -670,12 +670,13 @@ export function InventoryTab({ activeTab = 'inventory', onTabChange }: Inventory
                       ? '-'
                       : `${item.min_quantity}${item.unit ? ` ${item.unit}` : ''}`;
                     const displayPrice = placeholderItem ? '-' : `₩${item.price.toLocaleString()}`;
+                    const isLastRow = index === filteredInventory.length - 1;
 
                     return (
                       <tr
                         key={item.id}
                         data-item-id={item.id}
-                        className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors"
+                        className={isLastRow ? "hover:bg-gray-50/50 transition-colors" : "border-b border-gray-50 hover:bg-gray-50/50 transition-colors"}
                       >
                         <td className="px-6 py-4 text-center text-[15px]" style={{ color: '#4a5565' }}>{item.name}</td>
                         <td className="px-6 py-4 text-center text-[15px]" style={{ color: '#4a5565' }}>{displayCategory}</td>

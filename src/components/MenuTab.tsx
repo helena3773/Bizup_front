@@ -287,10 +287,12 @@ export function MenuTab({ activeTab = 'menu', onTabChange }: MenuTabProps) {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredMenus.map((menu) => (
+                  {filteredMenus.map((menu, index) => {
+                    const isLastRow = index === filteredMenus.length - 1;
+                    return (
                     <tr
                       key={menu.id}
-                      className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors"
+                      className={isLastRow ? "hover:bg-gray-50/50 transition-colors" : "border-b border-gray-50 hover:bg-gray-50/50 transition-colors"}
                     >
                       <td className="px-6 py-6 text-center text-[15px] text-gray-900">{menu.name}</td>
                       <td className="px-6 py-6 text-center text-[15px] text-gray-600">{menu.ingredients.length}개</td>
@@ -299,7 +301,8 @@ export function MenuTab({ activeTab = 'menu', onTabChange }: MenuTabProps) {
                         {menu.ingredients.length > 3 && ' 외'}
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             )}
