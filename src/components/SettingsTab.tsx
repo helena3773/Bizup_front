@@ -436,32 +436,32 @@ export function SettingsTab({ activeTab = 'settings', onTabChange }: SettingsTab
             <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-gray-50 hover:bg-gray-50" style={{ backgroundColor: '#f9fafb', borderBottomColor: '#e5e7eb' }}>
-                    <TableHead className="pl-6 text-center" style={{ backgroundColor: '#f9fafb' }}>이름</TableHead>
-                    <TableHead className="text-center" style={{ backgroundColor: '#f9fafb' }}>직책</TableHead>
-                    <TableHead className="text-center" style={{ backgroundColor: '#f9fafb' }}>전화번호</TableHead>
-                    <TableHead className="text-center" style={{ backgroundColor: '#f9fafb' }}>상태</TableHead>
-                    <TableHead className="text-center" style={{ backgroundColor: '#f9fafb' }}>입사일</TableHead>
-                    <TableHead className="text-center" style={{ backgroundColor: '#f9fafb' }}>관리</TableHead>
+                  <TableRow className="bg-gray-50 hover:bg-gray-50">
+                    <TableHead className="pl-6 text-center">이름</TableHead>
+                    <TableHead className="text-center">직책</TableHead>
+                    <TableHead className="text-center">전화번호</TableHead>
+                    <TableHead className="text-center">상태</TableHead>
+                    <TableHead className="text-center">입사일</TableHead>
+                    <TableHead className="text-center">관리</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {loading ? (
-                    <TableRow style={{ borderBottomColor: '#e5e7eb' }}>
+                    <TableRow>
                       <TableCell colSpan={6} className="text-center py-8">
                         <Loader2 className="w-6 h-6 animate-spin mx-auto text-gray-700" />
                         <p className="text-gray-600 mt-2">직원 목록을 불러오는 중이에요…</p>
                       </TableCell>
                     </TableRow>
                   ) : employees.length === 0 ? (
-                    <TableRow style={{ borderBottomColor: '#e5e7eb' }}>
+                    <TableRow>
                       <TableCell colSpan={6} className="text-center py-8 text-gray-500">
                         등록된 직원이 아직 없어요.
                       </TableCell>
                     </TableRow>
                   ) : (
                     employees.map((employee) => (
-                      <TableRow key={employee.id} className="hover:bg-gray-50/50" style={{ borderRadius: '16px', overflow: 'hidden', borderBottomColor: '#e5e7eb' }}>
+                      <TableRow key={employee.id} className="hover:bg-gray-50/50" style={{ borderRadius: '16px', overflow: 'hidden' }}>
                         <TableCell className="pl-6 text-center">{employee.name}</TableCell>
                         <TableCell className="text-center">
                           <Badge variant="outline" className="border-gray-300 text-gray-800">

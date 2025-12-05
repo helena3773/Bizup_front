@@ -131,20 +131,8 @@ export interface LoginResponse {
   username: string;
 }
 
-export interface RegisterRequest {
-  username: string;
-  password: string;
-  email?: string;
-}
-
-export interface RegisterResponse {
-  message: string;
-  username: string;
-}
-
 export const authApi = {
   login: (data: LoginRequest) => api.post<LoginResponse>('/auth/login', data),
-  register: (data: RegisterRequest) => api.post<RegisterResponse>('/auth/register', data),
 };
 
 export interface InventoryItem {
@@ -260,21 +248,8 @@ export interface OutOfStockItem {
   status: 'critical' | 'warning' | 'recent';
 }
 
-export interface OutOfStockMenu {
-  id: number;
-  name: string;
-  missing_ingredients: string[];
-  days_out_of_stock: number;
-  status: 'critical' | 'warning' | 'recent';
-}
-
-export interface OutOfStockResponse {
-  items: OutOfStockItem[];
-  menus: OutOfStockMenu[];
-}
-
 export const outOfStockApi = {
-  getAll: () => api.get<OutOfStockResponse>('/out-of-stock'),
+  getAll: () => api.get<OutOfStockItem[]>('/out-of-stock'),
   restock: (itemId: number, quantity: number) => {
     // 쿼리 파라미터로 quantity 전달 (body 없음)
     return api.post<{ message: string; item: InventoryItem }>(`/out-of-stock/${itemId}/restock?quantity=${quantity}`);

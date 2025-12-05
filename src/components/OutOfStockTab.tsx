@@ -1,7 +1,6 @@
 ﻿import { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { AlertCircle, Clock, RotateCcw, Loader2 } from 'lucide-react';
 import { outOfStockApi, OutOfStockItem, OutOfStockMenu } from '../lib/api';
 import { toast } from 'sonner';
@@ -122,70 +121,67 @@ export function OutOfStockTab({ activeTab = 'outofstock', onTabChange }: OutOfSt
             <h3 className="text-xl font-semibold text-gray-900">품절 메뉴</h3>
             <p className="text-sm text-gray-500 mt-1">품절 재료를 사용하는 메뉴 목록</p>
           </div>
-          <div className="overflow-x-auto p-6">
+          <div className="overflow-x-auto">
             {loading ? (
               <div className="py-16 text-center">
                 <Loader2 className="w-6 h-6 animate-spin mx-auto text-[#3182F6]" />
                 <p className="text-gray-600 mt-2 text-[15px]">품절 메뉴를 불러오는 중이에요…</p>
               </div>
             ) : (
-              <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-gray-50 hover:bg-gray-50" style={{ backgroundColor: '#f9fafb', borderBottomColor: '#e5e7eb' }}>
-                      <TableHead className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px]" style={{ backgroundColor: '#f9fafb' }}>
-                        메뉴명
-                      </TableHead>
-                      <TableHead className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px]" style={{ backgroundColor: '#f9fafb' }}>
-                        품절 재료
-                      </TableHead>
-                      <TableHead className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px]" style={{ backgroundColor: '#f9fafb' }}>
-                        품절 기간
-                      </TableHead>
-                      <TableHead className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px]" style={{ backgroundColor: '#f9fafb' }}>
-                        상태
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {outOfStockMenus.length > 0 ? (
-                      outOfStockMenus.map((menu) => (
-                        <TableRow
-                          key={menu.id}
-                          className="hover:bg-gray-50/50"
-                          style={{ borderBottomColor: '#e5e7eb' }}
-                        >
-                          <TableCell className="px-6 py-6 text-center text-[15px] text-gray-900">{menu.name}</TableCell>
-                          <TableCell className="px-6 py-6 text-center text-[15px] text-gray-600">
-                            <div className="flex flex-wrap justify-center gap-1">
-                              {menu.missing_ingredients.map((ing, idx) => (
-                                <Badge key={idx} variant="outline" className="text-xs">
-                                  {ing}
-                                </Badge>
-                              ))}
-                            </div>
-                          </TableCell>
-                          <TableCell className="px-6 py-6 text-center text-[15px] text-gray-600">
-                            <div className="flex items-center justify-center gap-2 text-gray-800">
-                              <Clock className="w-4 h-4" />
-                              {menu.days_out_of_stock}일
-                            </div>
-                          </TableCell>
-                          <TableCell className="px-6 py-6 text-center">
-                            {getStatusBadge(menu.status)}
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow style={{ borderBottomColor: '#e5e7eb' }}>
-                        <TableCell colSpan={4} className="px-6 text-center" style={{ paddingTop: '80px', paddingBottom: '80px' }}>
-                          <p className="text-[15px] text-gray-400">품절된 메뉴가 없어요.</p>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-[#f9fafb]" style={{ height: '50px' }}>
+                    <th className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px] bg-[#f9fafb]">
+                      메뉴명
+                    </th>
+                    <th className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px] bg-[#f9fafb]">
+                      품절 재료
+                    </th>
+                    <th className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px] bg-[#f9fafb]">
+                      품절 기간
+                    </th>
+                    <th className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px] bg-[#f9fafb]">
+                      상태
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {outOfStockMenus.length > 0 ? (
+                    outOfStockMenus.map((menu) => (
+                      <tr
+                        key={menu.id}
+                        className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors"
+                      >
+                        <td className="px-6 py-6 text-center text-[15px] text-gray-900">{menu.name}</td>
+                        <td className="px-6 py-6 text-center text-[15px] text-gray-600">
+                          <div className="flex flex-wrap justify-center gap-1">
+                            {menu.missing_ingredients.map((ing, idx) => (
+                              <Badge key={idx} variant="outline" className="text-xs">
+                                {ing}
+                              </Badge>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="px-6 py-6 text-center text-[15px] text-gray-600">
+                          <div className="flex items-center justify-center gap-2 text-gray-800">
+                            <Clock className="w-4 h-4" />
+                            {menu.days_out_of_stock}일
+                          </div>
+                        </td>
+                        <td className="px-6 py-6 text-center">
+                          {getStatusBadge(menu.status)}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={4} className="px-6 text-center" style={{ paddingTop: '80px', paddingBottom: '80px' }}>
+                        <p className="text-[15px] text-gray-400">품절된 메뉴가 없어요.</p>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             )}
           </div>
         </div>
@@ -195,97 +191,94 @@ export function OutOfStockTab({ activeTab = 'outofstock', onTabChange }: OutOfSt
             <h3 className="text-xl font-semibold text-gray-900">품절 재료</h3>
             <p className="text-sm text-gray-500 mt-1">재고가 0인 재료 목록</p>
           </div>
-          <div className="overflow-x-auto p-6">
+          <div className="overflow-x-auto">
             {loading ? (
               <div className="py-16 text-center">
                 <Loader2 className="w-6 h-6 animate-spin mx-auto text-[#3182F6]" />
                 <p className="text-gray-600 mt-2 text-[15px]">품절 재료를 불러오는 중이에요…</p>
               </div>
             ) : (
-              <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-gray-50 hover:bg-gray-50" style={{ backgroundColor: '#f9fafb', borderBottomColor: '#e5e7eb' }}>
-                      <TableHead className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px]" style={{ backgroundColor: '#f9fafb' }}>
-                        재료명
-                      </TableHead>
-                      <TableHead className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px]" style={{ backgroundColor: '#f9fafb' }}>
-                        카테고리
-                      </TableHead>
-                      <TableHead className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px]" style={{ backgroundColor: '#f9fafb' }}>
-                        품절 기간
-                      </TableHead>
-                      <TableHead className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px]" style={{ backgroundColor: '#f9fafb' }}>
-                        마지막 재고
-                      </TableHead>
-                      <TableHead className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px]" style={{ backgroundColor: '#f9fafb' }}>
-                        예상 손실
-                      </TableHead>
-                      <TableHead className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px]" style={{ backgroundColor: '#f9fafb' }}>
-                        상태
-                      </TableHead>
-                      <TableHead className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px]" style={{ backgroundColor: '#f9fafb' }}>
-                        관리
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {outOfStockItems.length > 0 ? (
-                      outOfStockItems.map((item) => (
-                        <TableRow
-                          key={item.id}
-                          className="hover:bg-gray-50/50"
-                          style={{ borderBottomColor: '#e5e7eb' }}
-                        >
-                          <TableCell className="px-6 py-6 text-center text-[15px] text-gray-900">{item.name}</TableCell>
-                          <TableCell className="px-6 py-6 text-center text-[15px] text-gray-600">{item.category}</TableCell>
-                          <TableCell className="px-6 py-6 text-center text-[15px] text-gray-600">
-                            <div className="flex items-center justify-center gap-2 text-gray-800">
-                              <Clock className="w-4 h-4" />
-                              {item.days_out_of_stock}일
-                            </div>
-                          </TableCell>
-                          <TableCell className="px-6 py-6 text-center text-[15px] text-gray-600">
-                            {item.last_stock} {item.unit}
-                          </TableCell>
-                          <TableCell className="px-6 py-6 text-center text-[15px] text-gray-900">
-                            -{item.estimated_loss.toLocaleString()}원
-                          </TableCell>
-                          <TableCell className="px-6 py-6 text-center">
-                            {getStatusBadge(item.status)}
-                          </TableCell>
-                          <TableCell className="px-6 py-6 text-center">
-                            <Button
-                              size="sm"
-                              className="bg-[#F0F7FF] text-[#0B5ED7] border-none transition-all duration-200 font-medium hover:bg-[#E0EDFF]"
-                              onClick={() => handleRestock(item.id)}
-                              disabled={restocking === item.id}
-                            >
-                              {restocking === item.id ? (
-                                <>
-                                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                                  재입고 중...
-                                </>
-                              ) : (
-                                <>
-                                  <RotateCcw className="w-3 h-3 mr-1" />
-                                  재입고 진행
-                                </>
-                              )}
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow style={{ borderBottomColor: '#e5e7eb' }}>
-                        <TableCell colSpan={7} className="px-6 text-center" style={{ paddingTop: '80px', paddingBottom: '80px' }}>
-                          <p className="text-[15px] text-gray-400">품절된 재료가 없어요.</p>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-[#f9fafb]" style={{ height: '50px' }}>
+                    <th className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px] bg-[#f9fafb]">
+                      재료명
+                    </th>
+                    <th className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px] bg-[#f9fafb]">
+                      카테고리
+                    </th>
+                    <th className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px] bg-[#f9fafb]">
+                      품절 기간
+                    </th>
+                    <th className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px] bg-[#f9fafb]">
+                      마지막 재고
+                    </th>
+                    <th className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px] bg-[#f9fafb]">
+                      예상 손실
+                    </th>
+                    <th className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px] bg-[#f9fafb]">
+                      상태
+                    </th>
+                    <th className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px] bg-[#f9fafb]">
+                      관리
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {outOfStockItems.length > 0 ? (
+                    outOfStockItems.map((item) => (
+                      <tr
+                        key={item.id}
+                        className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors"
+                      >
+                        <td className="px-6 py-6 text-center text-[15px] text-gray-900">{item.name}</td>
+                        <td className="px-6 py-6 text-center text-[15px] text-gray-600">{item.category}</td>
+                        <td className="px-6 py-6 text-center text-[15px] text-gray-600">
+                          <div className="flex items-center justify-center gap-2 text-gray-800">
+                            <Clock className="w-4 h-4" />
+                            {item.days_out_of_stock}일
+                          </div>
+                        </td>
+                        <td className="px-6 py-6 text-center text-[15px] text-gray-600">
+                          {item.last_stock} {item.unit}
+                        </td>
+                        <td className="px-6 py-6 text-center text-[15px] text-gray-900">
+                          -{item.estimated_loss.toLocaleString()}원
+                        </td>
+                        <td className="px-6 py-6 text-center">
+                          {getStatusBadge(item.status)}
+                        </td>
+                        <td className="px-6 py-6 text-center">
+                          <Button
+                            size="sm"
+                            className="bg-[#F0F7FF] text-[#0B5ED7] border-none transition-all duration-200 font-medium hover:bg-[#E0EDFF]"
+                            onClick={() => handleRestock(item.id)}
+                            disabled={restocking === item.id}
+                          >
+                            {restocking === item.id ? (
+                              <>
+                                <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                재입고 중...
+                              </>
+                            ) : (
+                              <>
+                                <RotateCcw className="w-3 h-3 mr-1" />
+                                재입고 진행
+                              </>
+                            )}
+                          </Button>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={7} className="px-6 text-center" style={{ paddingTop: '80px', paddingBottom: '80px' }}>
+                        <p className="text-[15px] text-gray-400">품절된 재료가 없어요.</p>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             )}
           </div>
         </div>

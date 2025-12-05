@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Button } from './ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { Upload, RefreshCw, Search, Loader2, FileText } from 'lucide-react';
 import { menuApi, MenuItem } from '../lib/api';
 import { toast } from 'sonner';
@@ -260,7 +259,7 @@ export function MenuTab({ activeTab = 'menu', onTabChange }: MenuTabProps) {
           </div>
 
           {/* 메뉴 리스트 테이블 */}
-          <div className="overflow-x-auto p-6">
+          <div className="overflow-x-auto">
             {loading ? (
               <div className="py-16 text-center">
                 <Loader2 className="w-6 h-6 animate-spin mx-auto text-[#3182F6]" />
@@ -273,39 +272,39 @@ export function MenuTab({ activeTab = 'menu', onTabChange }: MenuTabProps) {
                 </p>
               </div>
             ) : (
-              <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-gray-50 hover:bg-gray-50" style={{ backgroundColor: '#f9fafb', borderBottomColor: '#e5e7eb' }}>
-                      <TableHead className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px]" style={{ backgroundColor: '#f9fafb' }}>
-                        메뉴명
-                      </TableHead>
-                      <TableHead className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px]" style={{ backgroundColor: '#f9fafb' }}>
-                        재료 수
-                      </TableHead>
-                      <TableHead className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px]" style={{ backgroundColor: '#f9fafb' }}>
-                        재료 목록 (일부)
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredMenus.map((menu) => (
-                      <TableRow
-                        key={menu.id}
-                        className="hover:bg-gray-50/50"
-                        style={{ borderBottomColor: '#e5e7eb' }}
-                      >
-                        <TableCell className="px-6 py-6 text-center text-[15px] text-gray-900">{menu.name}</TableCell>
-                        <TableCell className="px-6 py-6 text-center text-[15px] text-gray-600">{menu.ingredients.length}개</TableCell>
-                        <TableCell className="px-6 py-6 text-center text-[14px] text-gray-500">
-                          {menu.ingredients.slice(0, 3).map((ing) => `${ing.ingredient_name}`).join(', ')}
-                          {menu.ingredients.length > 3 && ' 외'}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-100" style={{ height: '50px' }}>
+                    <th className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px]">
+                      메뉴명
+                    </th>
+                    <th className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px]">
+                      재료 수
+                    </th>
+                    <th className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px]">
+                      재료 목록 (일부)
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredMenus.map((menu, index) => {
+                    const isLastRow = index === filteredMenus.length - 1;
+                    return (
+                    <tr
+                      key={menu.id}
+                      className={isLastRow ? "hover:bg-gray-50/50 transition-colors" : "border-b border-gray-50 hover:bg-gray-50/50 transition-colors"}
+                    >
+                      <td className="px-6 py-6 text-center text-[15px] text-gray-900">{menu.name}</td>
+                      <td className="px-6 py-6 text-center text-[15px] text-gray-600">{menu.ingredients.length}개</td>
+                      <td className="px-6 py-6 text-center text-[14px] text-gray-500">
+                        {menu.ingredients.slice(0, 3).map((ing) => `${ing.ingredient_name}`).join(', ')}
+                        {menu.ingredients.length > 3 && ' 외'}
+                      </td>
+                    </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             )}
           </div>
         </div>

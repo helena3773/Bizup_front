@@ -739,7 +739,11 @@ export function InventoryTab({ activeTab = 'inventory', onTabChange }: Inventory
                             {displayPrice}
                           </TableCell>
                           <TableCell className="px-6 py-4 text-center">
-                            <Badge variant={statusVariant} className={statusClassName}>
+                            <Badge variant={statusVariant} className={statusClassName} style={
+                              isLowStock ? { color: '#ea580c', backgroundColor: '#fff7ed' } :
+                              !placeholderItem && !isOutOfStock && !isLowStock ? { color: '#16a34a', backgroundColor: '#f0fdf4' } :
+                              undefined
+                            }>
                               {status}
                             </Badge>
                           </TableCell>
