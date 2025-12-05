@@ -1,10 +1,11 @@
-﻿import { useState, useEffect, useRef, useMemo } from 'react';
+﻿import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Badge } from './ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { Plus, Search, Edit2, Loader2, Trash2, RefreshCw, Pause, Play } from 'lucide-react';
-import { inventoryApi, InventoryItem, InventoryStats } from '../lib/api';
+import { inventoryApi, InventoryItem, InventoryStats, simulatorApi } from '../lib/api';
 import { toast } from 'sonner';
 import { TabNavigation } from './TabNavigation';
 
@@ -30,6 +31,8 @@ export function InventoryTab({ activeTab = 'inventory', onTabChange }: Inventory
   const refreshInterval = 5000; // 5초마다 새로고침
   const [needsSetup, setNeedsSetup] = useState(false);
   const [autoRefreshLocked, setAutoRefreshLocked] = useState(false);
+  const inventoryRef = useRef<InventoryItem[]>([]); // 최신 inventory 상태 추적용
+  const searchQueryRef = useRef<string>(''); // 최신 searchQuery 상태 추적용
 
   const sanitizedCategories = inventory
     .map((i) => i.category)
@@ -55,31 +58,42 @@ export function InventoryTab({ activeTab = 'inventory', onTabChange }: Inventory
     price: '',
   });
 
-  // 재고 목록 로딩
+  // inventory와 searchQuery 상태 변경 시 ref 업데이트
+  useEffect(() => {
+    inventoryRef.current = inventory;
+  }, [inventory]);
+
+  useEffect(() => {
+    searchQueryRef.current = searchQuery;
+  }, [searchQuery]);
+
+  // 재고 목록 로딩 및 시뮬레이터 상태 동기화
   useEffect(() => {
     loadInventory();
     loadStats();
+    
+    // 백엔드 시뮬레이터 상태 확인하여 autoRefresh 동기화
+    const syncSimulatorStatus = async () => {
+      try {
+        const status = await simulatorApi.getStatus();
+        // 시뮬레이터가 일시정지되어 있으면 autoRefresh도 false로 설정
+        // 시뮬레이터가 실행 중이면 autoRefresh도 true로 설정
+        setAutoRefresh(!status.paused);
+      } catch (error) {
+        console.error('시뮬레이터 상태 확인 오류:', error);
+        // 에러 발생 시 기본값 유지 (true)
+      }
+    };
+    
+    syncSimulatorStatus();
   }, []);
 
-  // 실시간 재고 자동 새로고침
-  useEffect(() => {
-    if (!autoRefresh) return;
-
-    const interval = setInterval(() => {
-      // 조용히 새로고침 (로딩 표시 없이)
-      loadInventorySilently();
-      loadStats();
-    }, refreshInterval);
-
-    return () => clearInterval(interval);
-  }, [autoRefresh, refreshInterval]);
-
-  // 조용한 새로고침 (로딩 표시 없이)
-  const loadInventorySilently = async () => {
+  // 조용한 새로고침 (로딩 표시 없이) - useRef를 사용하여 최신 상태 참조
+  const loadInventorySilently = useCallback(async () => {
     try {
-      const previousInventory = inventory;
+      const previousInventory = inventoryRef.current;
       // searchQuery가 빈 문자열이거나 공백만 있으면 undefined로 전달
-      const search = searchQuery?.trim() || undefined;
+      const search = searchQueryRef.current?.trim() || undefined;
       const data = await inventoryApi.getAll(search);
 
       const requiresSetup = handleSetupGuard(data);
@@ -105,7 +119,20 @@ export function InventoryTab({ activeTab = 'inventory', onTabChange }: Inventory
       console.error('재고 목록 자동 새로고침 오류:', error);
       // 조용한 새로고침이므로 에러 토스트는 표시하지 않음
     }
-  };
+  }, []);
+
+  // 실시간 재고 자동 새로고침
+  useEffect(() => {
+    if (!autoRefresh) return;
+
+    const interval = setInterval(() => {
+      // 조용히 새로고침 (로딩 표시 없이)
+      loadInventorySilently();
+      loadStats();
+    }, refreshInterval);
+
+    return () => clearInterval(interval);
+  }, [autoRefresh, refreshInterval, loadInventorySilently]);
 
   // 검색어 변경 시 재고 목록 다시 로딩 (디바운싱)
   useEffect(() => {
@@ -411,15 +438,35 @@ export function InventoryTab({ activeTab = 'inventory', onTabChange }: Inventory
             </div>
             <div className="flex items-center gap-3 flex-shrink-0">
               <button
-                onClick={() => {
+                onClick={async () => {
                   if (autoRefreshLocked) {
                     toast.info('초기화를 먼저 완료해 주세요!');
                     return;
                   }
-                  setAutoRefresh(!autoRefresh);
-                  if (!autoRefresh) {
-                    loadInventory();
-                    loadStats();
+                  
+                  try {
+                    if (autoRefresh) {
+                      // 일시정지: 시뮬레이터도 일시정지
+                      await simulatorApi.pause();
+                      setAutoRefresh(false);
+                      toast.success('자동 새로고침과 시뮬레이션이 일시정지되었습니다.');
+                    } else {
+                      // 시작: 시뮬레이터도 재개
+                      await simulatorApi.resume();
+                      setAutoRefresh(true);
+                      loadInventory();
+                      loadStats();
+                      toast.success('자동 새로고침과 시뮬레이션이 시작되었습니다.');
+                    }
+                  } catch (error) {
+                    console.error('시뮬레이터 제어 오류:', error);
+                    // API 호출 실패해도 로컬 상태는 변경
+                    setAutoRefresh(!autoRefresh);
+                    if (!autoRefresh) {
+                      loadInventory();
+                      loadStats();
+                    }
+                    toast.error('시뮬레이터 제어에 실패했습니다. 자동 새로고침만 변경되었습니다.');
                   }
                 }}
                 className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition-colors border"
@@ -450,7 +497,8 @@ export function InventoryTab({ activeTab = 'inventory', onTabChange }: Inventory
                 )}
               </button>
               <button
-                onClick={() => {
+                onClick={async () => {
+                  // 새로고침 버튼은 시뮬레이터 상태를 변경하지 않음
                   loadInventory();
                   loadStats();
                   toast.success('재고를 새로고침했습니다.');
@@ -600,131 +648,133 @@ export function InventoryTab({ activeTab = 'inventory', onTabChange }: Inventory
 
 
         {/* Table */}
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto p-6">
           {loading ? (
             <div className="py-16 text-center">
               <Loader2 className="w-6 h-6 animate-spin mx-auto text-[#3182F6]" />
               <p className="text-gray-600 mt-2 text-[15px]">재고 목록을 불러오는 중이에요…</p>
             </div>
           ) : (
-            <table className="w-full" key={`inventory-table-${inventory.length}-${filteredInventory.length}`}>
-              <thead>
-                <tr className="border-b border-gray-100" style={{ height: '50px' }}>
-                  <th className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px]">
-                    상품명
-                  </th>
-                  <th className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px]">
-                    카테고리
-                  </th>
-                  <th className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px]">
-                    현재 재고
-                  </th>
-                  <th className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px]">
-                    최소 재고
-                  </th>
-                  <th className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px]">
-                    가격
-                  </th>
-                  <th className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px]">
-                    상태
-                  </th>
-                  <th className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px]">
-                    마지막 업데이트
-                  </th>
-                  <th className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px]">
-                    관리
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredInventory.length > 0 ? (
-                  filteredInventory.map((item, index) => {
-                    const isOutOfStock = item.quantity === 0;
-                    const isLowStock = item.quantity > 0 && item.quantity < item.min_quantity;
-                    const placeholderItem = isPlaceholderItem(item);
-                    let status = '충분';
-                    let statusVariant: 'default' | 'secondary' | 'destructive' = 'secondary';
-                    let statusClassName = '';
-                    if (placeholderItem) {
-                      status = '초기화 필요';
-                      statusVariant = 'secondary';
-                      statusClassName = 'text-sky-700 bg-sky-50 text-[11px]';
-                    } else if (isOutOfStock) {
-                      status = '품절';
-                      statusVariant = 'destructive';
-                      statusClassName = 'text-red-600 bg-red-50 text-[12px] font-semibold';
-                    } else if (isLowStock) {
-                      status = '부족';
-                      statusVariant = 'default';
-                      statusClassName = 'text-orange-600 bg-orange-50 text-[12px] font-semibold';
-                    } else {
-                      statusVariant = 'secondary';
-                      statusClassName = 'text-green-600 bg-green-50 text-[12px] font-semibold';
-                    }
+            <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
+              <Table key={`inventory-table-${inventory.length}-${filteredInventory.length}`}>
+                <TableHeader>
+                  <TableRow className="bg-gray-50 hover:bg-gray-50" style={{ backgroundColor: '#f9fafb', borderBottomColor: '#e5e7eb' }}>
+                    <TableHead className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px]" style={{ backgroundColor: '#f9fafb' }}>
+                      상품명
+                    </TableHead>
+                    <TableHead className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px]" style={{ backgroundColor: '#f9fafb' }}>
+                      카테고리
+                    </TableHead>
+                    <TableHead className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px]" style={{ backgroundColor: '#f9fafb' }}>
+                      현재 재고
+                    </TableHead>
+                    <TableHead className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px]" style={{ backgroundColor: '#f9fafb' }}>
+                      최소 재고
+                    </TableHead>
+                    <TableHead className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px]" style={{ backgroundColor: '#f9fafb' }}>
+                      가격
+                    </TableHead>
+                    <TableHead className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px]" style={{ backgroundColor: '#f9fafb' }}>
+                      상태
+                    </TableHead>
+                    <TableHead className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px]" style={{ backgroundColor: '#f9fafb' }}>
+                      마지막 업데이트
+                    </TableHead>
+                    <TableHead className="text-center px-6 text-gray-600 font-medium whitespace-nowrap text-[19px] md:text-[16px] lg:text-[19px]" style={{ backgroundColor: '#f9fafb' }}>
+                      관리
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredInventory.length > 0 ? (
+                    filteredInventory.map((item) => {
+                      const isOutOfStock = item.quantity === 0;
+                      const isLowStock = item.quantity > 0 && item.quantity < item.min_quantity;
+                      const placeholderItem = isPlaceholderItem(item);
+                      let status = '충분';
+                      let statusVariant: 'default' | 'secondary' | 'destructive' = 'secondary';
+                      let statusClassName = '';
+                      if (placeholderItem) {
+                        status = '초기화 필요';
+                        statusVariant = 'secondary';
+                        statusClassName = 'text-sky-700 bg-sky-50 text-[11px]';
+                      } else if (isOutOfStock) {
+                        status = '품절';
+                        statusVariant = 'destructive';
+                        statusClassName = 'text-red-600 bg-red-50 text-[12px] font-semibold';
+                      } else if (isLowStock) {
+                        status = '부족';
+                        statusVariant = 'default';
+                        statusClassName = 'text-orange-600 bg-orange-50 text-[12px] font-semibold';
+                      } else {
+                        statusVariant = 'secondary';
+                        statusClassName = 'text-green-600 bg-green-50 text-[12px] font-semibold';
+                      }
 
-                    const displayCategory = item.category === '-' ? '-' : item.category || '-';
-                    const displayQuantity = placeholderItem
-                      ? '-'
-                      : `${item.quantity}${item.unit ? ` ${item.unit}` : ''}`;
-                    const displayMinQuantity = placeholderItem
-                      ? '-'
-                      : `${item.min_quantity}${item.unit ? ` ${item.unit}` : ''}`;
-                    const displayPrice = placeholderItem ? '-' : `₩${item.price.toLocaleString()}`;
-                    const isLastRow = index === filteredInventory.length - 1;
+                      const displayCategory = item.category === '-' ? '-' : item.category || '-';
+                      const displayQuantity = placeholderItem
+                        ? '-'
+                        : `${item.quantity}${item.unit ? ` ${item.unit}` : ''}`;
+                      const displayMinQuantity = placeholderItem
+                        ? '-'
+                        : `${item.min_quantity}${item.unit ? ` ${item.unit}` : ''}`;
+                      const displayPrice = placeholderItem ? '-' : `₩${item.price.toLocaleString()}`;
 
-                    return (
-                      <tr
-                        key={item.id}
-                        data-item-id={item.id}
-                        className={isLastRow ? "hover:bg-gray-50/50 transition-colors" : "border-b border-gray-50 hover:bg-gray-50/50 transition-colors"}
-                      >
-                        <td className="px-6 py-4 text-center text-[15px]" style={{ color: '#4a5565' }}>{item.name}</td>
-                        <td className="px-6 py-4 text-center text-[15px]" style={{ color: '#4a5565' }}>{displayCategory}</td>
-                        <td className="px-6 py-4 text-center text-[15px]" style={{ color: '#4a5565' }}>
-                          {displayQuantity}
-                        </td>
-                        <td className="px-6 py-4 text-center text-[15px]" style={{ color: '#4a5565' }}>
-                          {displayMinQuantity}
-                        </td>
-                        <td className="px-6 py-4 text-center text-[15px]" style={{ color: '#4a5565' }}>
-                          {displayPrice}
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          <Badge variant={statusVariant} className={statusClassName}>
-                            {status}
-                          </Badge>
-                        </td>
-                        <td className="px-6 py-4 text-center text-[15px]" style={{ color: '#4a5565' }}>
-                          {item.last_updated}
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          <div className="flex items-center justify-center gap-1">
-                            <button
-                              onClick={() => handleEditItem(item)}
-                              className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                            >
-                              <Edit2 className="w-[16px] h-[16px]" strokeWidth={1.5} />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteItem(item.id)}
-                              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            >
-                              <Trash2 className="w-[16px] h-[16px]" strokeWidth={1.5} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                ) : (
-                  <tr>
-                    <td colSpan={8} className="px-6 text-center" style={{ paddingTop: '120px', paddingBottom: '120px' }}>
-                      <p className="text-[15px] text-gray-400">등록된 재고가 아직 없어요.</p>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                      return (
+                        <TableRow
+                          key={item.id}
+                          data-item-id={item.id}
+                          className="hover:bg-gray-50/50"
+                          style={{ borderBottomColor: '#e5e7eb' }}
+                        >
+                          <TableCell className="px-6 py-4 text-center text-[15px]" style={{ color: '#4a5565' }}>{item.name}</TableCell>
+                          <TableCell className="px-6 py-4 text-center text-[15px]" style={{ color: '#4a5565' }}>{displayCategory}</TableCell>
+                          <TableCell className="px-6 py-4 text-center text-[15px]" style={{ color: '#4a5565' }}>
+                            {displayQuantity}
+                          </TableCell>
+                          <TableCell className="px-6 py-4 text-center text-[15px]" style={{ color: '#4a5565' }}>
+                            {displayMinQuantity}
+                          </TableCell>
+                          <TableCell className="px-6 py-4 text-center text-[15px]" style={{ color: '#4a5565' }}>
+                            {displayPrice}
+                          </TableCell>
+                          <TableCell className="px-6 py-4 text-center">
+                            <Badge variant={statusVariant} className={statusClassName}>
+                              {status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="px-6 py-4 text-center text-[15px]" style={{ color: '#4a5565' }}>
+                            {item.last_updated}
+                          </TableCell>
+                          <TableCell className="px-6 py-4 text-center">
+                            <div className="flex items-center justify-center gap-1">
+                              <button
+                                onClick={() => handleEditItem(item)}
+                                className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              >
+                                <Edit2 className="w-[16px] h-[16px]" strokeWidth={1.5} />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteItem(item.id)}
+                                className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              >
+                                <Trash2 className="w-[16px] h-[16px]" strokeWidth={1.5} />
+                              </button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  ) : (
+                    <TableRow style={{ borderBottomColor: '#e5e7eb' }}>
+                      <TableCell colSpan={8} className="px-6 text-center" style={{ paddingTop: '120px', paddingBottom: '120px' }}>
+                        <p className="text-[15px] text-gray-400">등록된 재고가 아직 없어요.</p>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </div>
       </div>

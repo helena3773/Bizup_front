@@ -391,3 +391,18 @@ export const menuApi = {
     api.postFile<MenuUploadResponse>('/menus/upload-csv', file, { mode }),
 };
 
+export interface SimulatorStatus {
+  paused: boolean;
+}
+
+export interface SimulatorControlResponse {
+  message: string;
+  paused: boolean;
+}
+
+export const simulatorApi = {
+  getStatus: () => api.get<SimulatorStatus>('/sales/simulator/status'),
+  pause: () => api.post<SimulatorControlResponse>('/sales/simulator/pause'),
+  resume: () => api.post<SimulatorControlResponse>('/sales/simulator/resume'),
+};
+
