@@ -565,7 +565,7 @@ export default function App() {
                 placeholder="아이디를 입력하세요."
                 className="h-10 text-sm mb-1"
               />
-
+              <br/>
               <Label htmlFor="password" className="text-xs text-slate-600 block mb-1">
                 비밀번호
               </Label>
@@ -579,7 +579,7 @@ export default function App() {
                 className="h-10 text-sm"
               />
             </div>
-
+            <br/>
             <div className="flex gap-3" style={{ marginTop: '20px' }}>
               <Button
                 type="button"
@@ -636,7 +636,7 @@ export default function App() {
                 placeholder="아이디를 입력하세요"
                 className="h-10 text-sm mb-1"
               />
-
+              <br/>
               <Label htmlFor="register-password" className="text-xs text-slate-600 block mb-1">
                 비밀번호
               </Label>
@@ -649,7 +649,7 @@ export default function App() {
                 placeholder="비밀번호를 입력하세요"
                 className="h-10 text-sm mb-1"
               />
-
+              <br/>
               <Label htmlFor="register-email" className="text-xs text-slate-600 block mb-1">
                 이메일 (선택)
               </Label>
@@ -663,7 +663,7 @@ export default function App() {
                 className="h-10 text-sm"
               />
             </div>
-
+            <br/>
             <div className="flex gap-3" style={{ marginTop: '20px' }}>
               <Button
                 type="button"
