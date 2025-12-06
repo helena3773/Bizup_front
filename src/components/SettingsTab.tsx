@@ -1,17 +1,17 @@
-﻿import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Badge } from './ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
-import { Users, Plus, Edit, Trash2, Store as StoreIcon, Bell, Loader2 } from 'lucide-react';
+import { Users, Plus, Edit, Trash2, Store as StoreIcon, Bell, Loader2, FileText } from 'lucide-react';
 import { Switch } from './ui/switch';
 import { Separator } from './ui/separator';
 import { employeeApi, storeApi, Employee, NotificationSettings } from '../lib/api';
 import { toast } from 'sonner';
 import { TabNavigation } from './TabNavigation';
+import { ContractForm } from './ContractForm';
 
 interface SettingsTabProps {
   activeTab?: string;
@@ -28,6 +28,11 @@ export function SettingsTab({ activeTab = 'settings', onTabChange }: SettingsTab
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [contractDialogOpen, setContractDialogOpen] = useState(false);
+  const [selectedEmployeeForContract, setSelectedEmployeeForContract] = useState<Employee | null>(null);
+  const [newEmployeeContractDialogOpen, setNewEmployeeContractDialogOpen] = useState(false);
+  const [newlyAddedEmployeeId, setNewlyAddedEmployeeId] = useState<number | null>(null);
+  const [newlyAddedEmployeeName, setNewlyAddedEmployeeName] = useState<string>('');
 
   const [newEmployee, setNewEmployee] = useState({
     name: '',
@@ -68,8 +73,11 @@ export function SettingsTab({ activeTab = 'settings', onTabChange }: SettingsTab
     try {
       const data = await employeeApi.getAll();
       setEmployees(data);
-    } catch (error) {
-      console.error('직원 목록 로딩 오류:', error);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.';
+      if (process.env.NODE_ENV === 'development') {
+        console.error('직원 목록 로딩 오류:', errorMessage);
+      }
       toast.error('직원 목록을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.');
     }
   };
@@ -82,8 +90,11 @@ export function SettingsTab({ activeTab = 'settings', onTabChange }: SettingsTab
         address: data.address || '',
         phone: data.phone || '',
       });
-    } catch (error) {
-      console.error('가게 정보 로딩 오류:', error);
+    } catch (error: unknown) {
+      if (process.env.NODE_ENV === 'development') {
+        const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.';
+        console.error('가게 정보 로딩 오류:', errorMessage);
+      }
     }
   };
 
@@ -91,8 +102,11 @@ export function SettingsTab({ activeTab = 'settings', onTabChange }: SettingsTab
     try {
       const data = await storeApi.getNotifications();
       setNotifications(data);
-    } catch (error) {
-      console.error('알림 설정 로딩 오류:', error);
+    } catch (error: unknown) {
+      if (process.env.NODE_ENV === 'development') {
+        const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.';
+        console.error('알림 설정 로딩 오류:', errorMessage);
+      }
     }
   };
 
@@ -104,19 +118,30 @@ export function SettingsTab({ activeTab = 'settings', onTabChange }: SettingsTab
 
     try {
       setAdding(true);
-      await employeeApi.create({
+      const createdEmployee = await employeeApi.create({
         name: newEmployee.name,
         role: newEmployee.role,
         phone: newEmployee.phone,
         join_date: new Date().toISOString().split('T')[0],
       });
       toast.success('직원을 추가했어요.');
+      
+      // 새로 추가된 직원 정보 저장
+      setNewlyAddedEmployeeId(createdEmployee.id);
+      setNewlyAddedEmployeeName(newEmployee.name);
+      
       setNewEmployee({ name: '', role: '', phone: '' });
       setIsDialogOpen(false);
-      loadEmployees();
-    } catch (error) {
-      console.error('직원 추가 오류:', error);
-      toast.error('직원을 추가하지 못했어요. 잠시 후 다시 시도해 주세요.');
+      await loadEmployees();
+      
+      // 근로계약서 작성 다이얼로그 열기
+      setNewEmployeeContractDialogOpen(true);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.';
+      if (process.env.NODE_ENV === 'development') {
+        console.error('직원 추가 오류:', errorMessage);
+      }
+      toast.error(`직원을 추가하지 못했어요: ${errorMessage}`);
     } finally {
       setAdding(false);
     }
@@ -150,27 +175,33 @@ export function SettingsTab({ activeTab = 'settings', onTabChange }: SettingsTab
       setIsEditDialogOpen(false);
       setEditingEmployeeId(null);
       setEditEmployee({ name: '', role: '', phone: '' });
-      loadEmployees();
-    } catch (error) {
-      console.error('직원 수정 오류:', error);
-      toast.error('직원 정보를 수정하지 못했어요. 잠시 후 다시 시도해 주세요.');
+      await loadEmployees();
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.';
+      if (process.env.NODE_ENV === 'development') {
+        console.error('직원 수정 오류:', errorMessage);
+      }
+      toast.error(`직원 정보를 수정하지 못했어요: ${errorMessage}`);
     } finally {
       setEditing(false);
     }
   };
 
   const handleDeleteEmployee = async (id: number) => {
-    if (!confirm('이 직원을 삭제할까요?')) {
+    if (!window.confirm('이 직원을 삭제할까요?')) {
       return;
     }
 
     try {
       await employeeApi.delete(id);
       toast.success('직원을 삭제했어요.');
-      loadEmployees();
-    } catch (error) {
-      console.error('직원 삭제 오류:', error);
-      toast.error('직원을 삭제하지 못했어요. 다시 시도해 주세요.');
+      await loadEmployees();
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.';
+      if (process.env.NODE_ENV === 'development') {
+        console.error('직원 삭제 오류:', errorMessage);
+      }
+      toast.error(`직원을 삭제하지 못했어요: ${errorMessage}`);
     }
   };
 
@@ -180,9 +211,12 @@ export function SettingsTab({ activeTab = 'settings', onTabChange }: SettingsTab
       await storeApi.update(storeForm);
       toast.success('가게 정보를 저장했어요.');
       loadStore();
-    } catch (error) {
-      console.error('가게 정보 저장 오류:', error);
-      toast.error('가게 정보를 저장하지 못했어요. 잠시 후 다시 시도해 주세요.');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.';
+      if (process.env.NODE_ENV === 'development') {
+        console.error('가게 정보 저장 오류:', errorMessage);
+      }
+      toast.error(`가게 정보를 저장하지 못했어요: ${errorMessage}`);
     } finally {
       setSaving(false);
     }
@@ -201,9 +235,12 @@ export function SettingsTab({ activeTab = 'settings', onTabChange }: SettingsTab
         order_reminder: updated.order_reminder,
         daily_report: updated.daily_report,
       });
-    } catch (error) {
-      console.error('알림 설정 저장 오류:', error);
-      toast.error('알림 설정을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.';
+      if (process.env.NODE_ENV === 'development') {
+        console.error('알림 설정 저장 오류:', errorMessage);
+      }
+      toast.error(`알림 설정을 저장하지 못했어요: ${errorMessage}`);
       loadNotifications(); // 원래 값으로 복구
     }
   };
@@ -349,20 +386,41 @@ export function SettingsTab({ activeTab = 'settings', onTabChange }: SettingsTab
                         />
                       </div>
                       <br></br>
-                      <Button
-                        onClick={handleAddEmployee}
-                        className="w-full"
-                        disabled={adding}
-                      >
-                        {adding ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            추가 중...
-                          </>
-                        ) : (
-                          '추가하기'
-                        )}
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={() => {
+                            if (!newEmployee.name) {
+                              toast.error('이름을 먼저 입력해 주세요.');
+                              return;
+                            }
+                            // 임시 직원 정보로 근로계약서 작성 다이얼로그 열기
+                            setNewlyAddedEmployeeId(null);
+                            setNewlyAddedEmployeeName(newEmployee.name);
+                            setIsDialogOpen(false);
+                            setNewEmployeeContractDialogOpen(true);
+                          }}
+                          variant="outline"
+                          className="flex-1"
+                          disabled={adding || !newEmployee.name}
+                        >
+                          <FileText className="w-4 h-4 mr-2" />
+                          근로계약서 작성
+                        </Button>
+                        <Button
+                          onClick={handleAddEmployee}
+                          className="flex-1"
+                          disabled={adding}
+                        >
+                          {adding ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              추가 중...
+                            </>
+                          ) : (
+                            '추가하기'
+                          )}
+                        </Button>
+                      </div>
                     </div>
                   </DialogContent>
                 </Dialog>
@@ -480,6 +538,18 @@ export function SettingsTab({ activeTab = 'settings', onTabChange }: SettingsTab
                             <Button 
                               variant="ghost" 
                               size="sm" 
+                              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                              onClick={() => {
+                                setSelectedEmployeeForContract(employee);
+                                setContractDialogOpen(true);
+                              }}
+                              title="근로계약서 작성"
+                            >
+                              <FileText className="w-4 h-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
                               className="text-gray-700 hover:text-gray-800 hover:bg-gray-50"
                               onClick={() => handleEditEmployee(employee)}
                             >
@@ -578,6 +648,40 @@ export function SettingsTab({ activeTab = 'settings', onTabChange }: SettingsTab
           </div>
         </div>
       </div>
+
+      {/* 근로계약서 작성 다이얼로그 (기존 직원용) */}
+      <ContractForm
+        open={contractDialogOpen}
+        onOpenChange={setContractDialogOpen}
+        employeeId={selectedEmployeeForContract?.id}
+        employeeName={selectedEmployeeForContract?.name}
+        onSuccess={() => {
+          // 근로계약서 작성 완료 후 필요한 작업 수행
+          loadEmployees();
+        }}
+      />
+      
+      {/* 근로계약서 작성 다이얼로그 (새 직원 추가용) */}
+      <ContractForm
+        open={newEmployeeContractDialogOpen}
+        onOpenChange={(open) => {
+          setNewEmployeeContractDialogOpen(open);
+          if (!open) {
+            // 다이얼로그가 닫힐 때 상태 초기화
+            setNewlyAddedEmployeeId(null);
+            setNewlyAddedEmployeeName('');
+          }
+        }}
+        employeeId={newlyAddedEmployeeId || undefined}
+        employeeName={newlyAddedEmployeeName}
+        onSuccess={() => {
+          // 근로계약서 작성 완료 후 필요한 작업 수행
+          loadEmployees();
+          setNewEmployeeContractDialogOpen(false);
+          setNewlyAddedEmployeeId(null);
+          setNewlyAddedEmployeeName('');
+        }}
+      />
     </div>
   );
 }

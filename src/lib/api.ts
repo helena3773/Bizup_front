@@ -406,3 +406,50 @@ export const simulatorApi = {
   resume: () => api.post<SimulatorControlResponse>('/sales/simulator/resume'),
 };
 
+export interface Contract {
+  id: number;
+  employee_id: number;
+  employer_name: string;
+  working_conditions?: string;
+  wage?: string;
+  contract_date: string;
+  employee_name: string;
+  employee_address: string;
+  employee_phone: string;
+  employee_signature: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ContractCreate {
+  employee_id: number;
+  employer_name: string;
+  working_conditions?: string;
+  wage?: string;
+  contract_date: string;
+  employee_name: string;
+  employee_address: string;
+  employee_phone: string;
+  employee_signature: string;
+}
+
+export interface ContractUpdate {
+  employer_name?: string;
+  working_conditions?: string;
+  wage?: string;
+  contract_date?: string;
+  employee_name?: string;
+  employee_address?: string;
+  employee_phone?: string;
+  employee_signature?: string;
+}
+
+export const contractApi = {
+  getAll: () => api.get<Contract[]>('/contracts'),
+  getById: (id: number) => api.get<Contract>(`/contracts/${id}`),
+  getByEmployee: (employeeId: number) => api.get<Contract[]>(`/contracts/employee/${employeeId}`),
+  create: (data: ContractCreate) => api.post<Contract>('/contracts', data),
+  update: (id: number, data: ContractUpdate) => api.put<Contract>(`/contracts/${id}`, data),
+  delete: (id: number) => api.delete(`/contracts/${id}`),
+};
+
