@@ -494,7 +494,7 @@ export function SettingsTab({ activeTab = 'settings', onTabChange }: SettingsTab
             <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-gray-50 hover:bg-gray-50">
+                  <TableRow className="bg-gray-50 hover:bg-gray-50 border-gray-200">
                     <TableHead className="pl-6 text-center">이름</TableHead>
                     <TableHead className="text-center">직책</TableHead>
                     <TableHead className="text-center">전화번호</TableHead>
@@ -519,7 +519,7 @@ export function SettingsTab({ activeTab = 'settings', onTabChange }: SettingsTab
                     </TableRow>
                   ) : (
                     employees.map((employee) => (
-                      <TableRow key={employee.id} className="hover:bg-gray-50/50" style={{ borderRadius: '16px', overflow: 'hidden' }}>
+                      <TableRow key={employee.id} className="hover:bg-gray-50/50 border-gray-200" style={{ borderRadius: '16px', overflow: 'hidden' }}>
                         <TableCell className="pl-6 text-center">{employee.name}</TableCell>
                         <TableCell className="text-center">
                           <Badge variant="outline" className="border-gray-300 text-gray-800">

@@ -48,6 +48,7 @@ export function ContractForm({ open, onOpenChange, employeeId, employeeName, onS
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
+  const [hasSignatureState, setHasSignatureState] = useState(false); // 서명 존재 여부를 추적하는 state
   
   // 캔버스 크기 조정 - 다이얼로그가 열릴 때만 실행
   useEffect(() => {
@@ -106,92 +107,106 @@ export function ContractForm({ open, onOpenChange, employeeId, employeeName, onS
     return () => clearTimeout(timer);
   }, [open]);
 
-  // 저장된 서명 이미지를 캔버스에 로드 - 다이얼로그가 열리고 서명 데이터가 있을 때
+  // 저장된 서명 이미지를 캔버스에 로드 - 기존 계약서를 불러올 때만 실행
+  const signatureLoadedRef = useRef<string>(''); // 마지막으로 로드한 서명 데이터를 저장
+  
   useEffect(() => {
-    if (!open) return;
-    
-    // 기존 계약서가 있고 서명 데이터가 있을 때만 로드
-    if (!existingContractId || !contractData.employeeSignature) {
-      // 새 계약서이거나 서명이 없으면 캔버스 초기화만
-      const canvas = canvasRef.current;
-      if (canvas) {
-        const ctx = canvas.getContext('2d');
-        if (ctx && canvas.width > 0 && canvas.height > 0) {
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          ctx.fillStyle = '#FFFFFF';
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-        }
-      }
+    if (!open) {
+      signatureLoadedRef.current = '';
       return;
     }
     
-    // 캔버스 크기 설정이 완료된 후 이미지 로드
-    const timer = setTimeout(() => {
-      const canvas = canvasRef.current;
-      if (!canvas) {
-        if (process.env.NODE_ENV === 'development') {
-          console.warn('캔버스가 없습니다 - 이미지 로드 스킵');
-        }
-        return;
-      }
-
-      // 캔버스 크기가 설정되지 않았으면 설정
-      if (canvas.width === 0 || canvas.height === 0) {
-        const rect = canvas.getBoundingClientRect();
-        if (rect.width > 0 && rect.height > 0) {
-          canvas.width = Math.floor(rect.width);
-          canvas.height = Math.floor(rect.height);
-        } else {
-          // 기본값 사용
-          canvas.width = 800;
-          canvas.height = 200;
-        }
-      }
-
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        if (process.env.NODE_ENV === 'development') {
-          console.warn('캔버스 컨텍스트를 가져올 수 없습니다');
-        }
-        return;
-      }
-
-      const img = new Image();
-      img.onload = () => {
-        try {
-          // 캔버스 초기화
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          // 흰색 배경
-          ctx.fillStyle = '#FFFFFF';
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          // 이미지를 캔버스 크기에 맞춰 그리기
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          
+    // 기존 계약서가 있고 서명 데이터가 있을 때만 로드
+    // 사용자가 직접 그린 서명이 덮어씌워지지 않도록, 기존 계약서를 볼 때만 로드
+    if (existingContractId && contractData.employeeSignature && 
+        contractData.employeeSignature.length > 100 && 
+        signatureLoadedRef.current !== contractData.employeeSignature) {
+      // 캔버스 크기 설정이 완료된 후 이미지 로드
+      const timer = setTimeout(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) {
           if (process.env.NODE_ENV === 'development') {
-            console.log('서명 이미지 재로드 완료:', {
-              canvasWidth: canvas.width,
-              canvasHeight: canvas.height,
-              imageWidth: img.width,
-              imageHeight: img.height,
-              existingContractId
-            });
+            console.warn('캔버스가 없습니다 - 이미지 로드 스킵');
           }
-        } catch (error) {
-          if (process.env.NODE_ENV === 'development') {
-            console.error('서명 이미지 그리기 오류:', error);
+          return;
+        }
+
+        // 캔버스 크기가 설정되지 않았으면 설정
+        if (canvas.width === 0 || canvas.height === 0) {
+          const rect = canvas.getBoundingClientRect();
+          if (rect.width > 0 && rect.height > 0) {
+            canvas.width = Math.floor(rect.width);
+            canvas.height = Math.floor(rect.height);
+          } else {
+            // 기본값 사용
+            canvas.width = 800;
+            canvas.height = 200;
           }
         }
-      };
-      img.onerror = (error) => {
-        if (process.env.NODE_ENV === 'development') {
-          console.error('서명 이미지 로드 오류:', error);
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('캔버스 컨텍스트를 가져올 수 없습니다');
+          }
+          return;
         }
-      };
-      img.src = contractData.employeeSignature;
-    }, 800); // 캔버스 크기 설정 후 충분한 지연
-    
-    return () => clearTimeout(timer);
-  }, [open, existingContractId, contractData.employeeSignature]); // contractData.employeeSignature 추가하여 서명 데이터 변경 시 재로드
+
+        const img = new Image();
+        img.onload = () => {
+          try {
+            // 캔버스 초기화
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // 흰색 배경
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // 이미지를 캔버스 크기에 맞춰 그리기
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            signatureLoadedRef.current = contractData.employeeSignature;
+            // 서명 상태 업데이트
+            setHasSignatureState(true);
+            
+            if (process.env.NODE_ENV === 'development') {
+              console.log('서명 이미지 로드 완료:', {
+                canvasWidth: canvas.width,
+                canvasHeight: canvas.height,
+                imageWidth: img.width,
+                imageHeight: img.height,
+                existingContractId
+              });
+            }
+          } catch (error) {
+            if (process.env.NODE_ENV === 'development') {
+              console.error('서명 이미지 그리기 오류:', error);
+            }
+          }
+        };
+        img.onerror = (error) => {
+          if (process.env.NODE_ENV === 'development') {
+            console.error('서명 이미지 로드 오류:', error);
+          }
+        };
+        img.src = contractData.employeeSignature;
+      }, 1000); // 캔버스 크기 설정 후 충분한 지연
+      
+      return () => clearTimeout(timer);
+    } else if (!existingContractId) {
+      // 새 계약서이면 캔버스 초기화만 (사용자가 직접 그린 서명이 있으면 유지)
+      // signatureLoadedRef는 유지하여 사용자가 그린 서명이 덮어씌워지지 않도록 함
+      if (!contractData.employeeSignature || contractData.employeeSignature.length <= 100) {
+        signatureLoadedRef.current = '';
+        const canvas = canvasRef.current;
+        if (canvas) {
+          const ctx = canvas.getContext('2d');
+          if (ctx && canvas.width > 0 && canvas.height > 0) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+          }
+        }
+      }
+    }
+  }, [open, existingContractId, contractData.employeeSignature]); // contractData.employeeSignature 의존성 추가 - 기존 계약서 서명 로드를 위해 필요
   
   // 날짜 선택을 위한 상태 - 현재 날짜를 기준으로 초기화
   const [selectedYear, setSelectedYear] = useState(initialDate.getFullYear());
@@ -230,6 +245,15 @@ export function ContractForm({ open, onOpenChange, employeeId, employeeName, onS
         
         // 서명 이미지는 useEffect에서 로드하므로 여기서는 데이터만 설정
         // 이미지 로드는 별도의 useEffect에서 처리
+        // signatureLoadedRef를 리셋하여 이미지가 다시 로드되도록 함
+        signatureLoadedRef.current = '';
+        
+        // 기존 계약서에 서명이 있으면 상태 업데이트
+        if (latestContract.employee_signature && latestContract.employee_signature.length > 100) {
+          setHasSignatureState(true);
+        } else {
+          setHasSignatureState(false);
+        }
       } else {
         // 기존 계약서가 없으면 현재 날짜로 초기화
         const currentDate = new Date();
@@ -252,6 +276,7 @@ export function ContractForm({ open, onOpenChange, employeeId, employeeName, onS
           employeeSignature: '',
         });
         setExistingContractId(null);
+        setHasSignatureState(false);
       }
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.';
@@ -301,6 +326,7 @@ export function ContractForm({ open, onOpenChange, employeeId, employeeName, onS
         employeeSignature: '',
       });
       setExistingContractId(null);
+      setHasSignatureState(false);
     }
   }, [open, employeeId, employeeName]);
 
@@ -354,6 +380,7 @@ export function ContractForm({ open, onOpenChange, employeeId, employeeName, onS
       employeeSignature: '',
     });
     clearSignature();
+    setHasSignatureState(false);
   };
 
   const handleClose = () => {
@@ -454,10 +481,9 @@ export function ContractForm({ open, onOpenChange, employeeId, employeeName, onS
 
   const stopDrawing = () => {
     setIsDrawing(false);
-    // 서명 저장 (약간의 지연을 두어 확실히 저장)
-    setTimeout(() => {
-      saveSignature();
-    }, 50);
+    // 서명 즉시 저장 (지연 없이)
+    saveSignature();
+    // saveSignature에서 상태를 업데이트하므로 여기서는 추가 확인 불필요
   };
 
   const clearSignature = () => {
@@ -469,6 +495,77 @@ export function ContractForm({ open, onOpenChange, employeeId, employeeName, onS
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     setContractData(prev => ({ ...prev, employeeSignature: '' }));
+    setHasSignatureState(false);
+  };
+
+  // 서명이 있는지 확인하는 함수 (내부 로직)
+  const checkSignatureExists = (): boolean => {
+    // 기존 계약서가 있으면 서명이 있다고 간주
+    if (existingContractId && contractData.employeeSignature && contractData.employeeSignature.length > 100) {
+      return true;
+    }
+
+    // 새 계약서인 경우 캔버스 확인
+    const canvas = canvasRef.current;
+    if (!canvas || canvas.width === 0 || canvas.height === 0) {
+      return false;
+    }
+
+    try {
+      // 캔버스에서 데이터 가져오기
+      const dataURL = canvas.toDataURL('image/png');
+      
+      // 빈 캔버스인지 확인 (data:, 또는 매우 짧은 데이터는 빈 캔버스)
+      if (!dataURL || dataURL === 'data:,' || dataURL.length < 100) {
+        // contractData에 저장된 서명이 있는지 확인
+        if (contractData.employeeSignature && contractData.employeeSignature.length > 100) {
+          return true;
+        }
+        return false;
+      }
+
+      // 캔버스가 모두 흰색인지 확인 (빈 캔버스)
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const pixels = imageData.data;
+        let hasNonWhitePixel = false;
+        
+        // 샘플링: 모든 픽셀을 확인하는 대신 일부만 확인 (성능 최적화)
+        for (let i = 0; i < pixels.length; i += 16) {
+          const r = pixels[i];
+          const g = pixels[i + 1];
+          const b = pixels[i + 2];
+          // 흰색이 아닌 픽셀이 있으면 서명이 있다고 판단
+          if (r !== 255 || g !== 255 || b !== 255) {
+            hasNonWhitePixel = true;
+            break;
+          }
+        }
+        
+        return hasNonWhitePixel;
+      }
+      
+      return dataURL.length > 100;
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('서명 확인 오류:', error);
+      }
+      // 오류 발생 시 contractData 확인
+      return !!(contractData.employeeSignature && contractData.employeeSignature.length > 100);
+    }
+  };
+
+  // 서명이 있는지 확인하는 함수 (공개 API)
+  const hasSignature = (): boolean => {
+    // 기존 계약서가 있으면 서명이 있다고 간주
+    if (existingContractId && contractData.employeeSignature && contractData.employeeSignature.length > 100) {
+      return true;
+    }
+    
+    // 새 계약서인 경우 state를 사용 (가장 정확함)
+    // state는 서명을 그리거나 저장할 때만 true로 설정됨
+    return hasSignatureState;
   };
 
   const saveSignature = () => {
@@ -494,17 +591,60 @@ export function ContractForm({ open, onOpenChange, employeeId, employeeName, onS
       
       // base64 데이터가 유효한지 확인 (최소 길이만 확인)
       if (dataURL && dataURL !== 'data:,' && dataURL.length > 50) {
-        setContractData(prev => {
-          const newData = { ...prev, employeeSignature: dataURL };
-          if (process.env.NODE_ENV === 'development') {
-            console.log('서명 이미지 저장됨, 길이:', dataURL.length);
-            console.log('서명 이미지 데이터 시작:', dataURL.substring(0, 50));
+        // 캔버스에 실제로 서명이 있는지 확인 (흰색만 있는지 체크)
+        const ctx = canvas.getContext('2d');
+        let hasActualSignature = false;
+        
+        if (ctx) {
+          try {
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const pixels = imageData.data;
+            
+            // 샘플링: 모든 픽셀을 확인하는 대신 일부만 확인 (성능 최적화)
+            for (let i = 0; i < pixels.length; i += 16) {
+              const r = pixels[i];
+              const g = pixels[i + 1];
+              const b = pixels[i + 2];
+              // 흰색이 아닌 픽셀이 있으면 서명이 있다고 판단
+              if (r !== 255 || g !== 255 || b !== 255) {
+                hasActualSignature = true;
+                break;
+              }
+            }
+          } catch (error) {
+            // 오류 발생 시 dataURL 길이로 판단
+            hasActualSignature = dataURL.length > 100;
           }
-          return newData;
-        });
+        } else {
+          // ctx를 가져올 수 없으면 dataURL 길이로 판단
+          hasActualSignature = dataURL.length > 100;
+        }
+        
+        // 기존 계약서가 아닐 때만 저장 (사용자가 직접 그린 서명만 저장)
+        if (!existingContractId) {
+          if (hasActualSignature) {
+            setContractData(prev => {
+              const newData = { ...prev, employeeSignature: dataURL };
+              if (process.env.NODE_ENV === 'development') {
+                console.log('서명 이미지 저장됨, 길이:', dataURL.length);
+                console.log('서명 이미지 데이터 시작:', dataURL.substring(0, 50));
+              }
+              // 서명 상태 업데이트
+              setHasSignatureState(true);
+              return newData;
+            });
+          } else {
+            // 실제 서명이 없으면 상태를 false로 유지
+            setHasSignatureState(false);
+          }
+        }
       } else {
         if (process.env.NODE_ENV === 'development') {
           console.warn('서명 이미지 데이터가 유효하지 않습니다:', dataURL?.substring(0, 50));
+        }
+        // 서명이 없으면 상태 업데이트
+        if (!existingContractId) {
+          setHasSignatureState(false);
         }
       }
     } catch (error) {
@@ -575,12 +715,10 @@ export function ContractForm({ open, onOpenChange, employeeId, employeeName, onS
         return;
       }
       
-      // 먼저 서명을 저장
+      // 서명을 즉시 저장
       saveSignature();
       
-      // 약간의 지연 후 캔버스에서 직접 서명 데이터 가져오기
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
+      // 캔버스에서 직접 서명 데이터 가져오기
       let finalSignature = '';
       try {
         // 캔버스에서 직접 서명 데이터 가져오기
@@ -754,7 +892,7 @@ export function ContractForm({ open, onOpenChange, employeeId, employeeName, onS
                         setContractData(prev => ({ ...prev, employerName: value }));
                       }
                     }}
-                    placeholder="(사업주)사업체명을 입력해 주세요."
+                    placeholder="(사업주) 사업체명을 입력해 주세요."
                     className="h-10 text-gray-300"
                     maxLength={25}
                     readOnly={!!existingContractId}
@@ -1033,6 +1171,7 @@ export function ContractForm({ open, onOpenChange, employeeId, employeeName, onS
                 <Button
                   onClick={handleSubmit}
                   className="flex-1"
+                  disabled={!hasSignature()}
                 >
                   계약서 작성완료
                 </Button>
