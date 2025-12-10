@@ -143,8 +143,8 @@ export interface RegisterResponse {
 }
 
 export const authApi = {
-  login: (data: LoginRequest) => api.post<LoginResponse>('/login', data),
-  register: (data: RegisterRequest) => api.post<RegisterResponse>('/register', data),
+  login: (data: LoginRequest) => api.post<LoginResponse>('/auth/login', data),
+  register: (data: RegisterRequest) => api.post<RegisterResponse>('/auth/register', data),
 };
 
 export interface InventoryItem {
