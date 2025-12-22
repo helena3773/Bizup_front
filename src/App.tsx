@@ -146,34 +146,6 @@ export default function App() {
               <Tabs value="" onValueChange={(value) => handleTabChange(value, 'main')} className="w-full">
                 <TabsList className="inline-flex items-center bg-[#f2f4f7] p-1.5 rounded-full h-auto mx-auto justify-center" style={{ gap: '16px' }}>
                   <TabsTrigger 
-                    value="inventory" 
-                    className="flex items-center justify-center gap-2 px-6 py-3 rounded-full transition-all duration-200 font-medium"
-                    style={{
-                      fontSize: '20px',
-                      fontWeight: 600,
-                      color: isAuthenticated ? '#3182f6' : '#94a3b8',
-                      backgroundColor: isAuthenticated ? '#eff6ff' : '#f1f5f9',
-                      cursor: isAuthenticated ? 'pointer' : 'not-allowed',
-                      opacity: isAuthenticated ? 1 : 0.6
-                    }}
-                    onMouseEnter={(e) => {
-                      if (isAuthenticated) {
-                        e.currentTarget.style.backgroundColor = '#3182f6';
-                        e.currentTarget.style.color = '#ffffff';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (isAuthenticated) {
-                        e.currentTarget.style.backgroundColor = '#eff6ff';
-                        e.currentTarget.style.color = '#3182f6';
-                      }
-                    }}
-                  >
-                    <Package className="w-5 h-5" />
-                    <span className="hidden sm:inline">재고 관리</span>
-                    <span className="sm:hidden">재고</span>
-                  </TabsTrigger>
-                  <TabsTrigger 
                     value="menu" 
                     className="flex items-center justify-center gap-2 px-6 py-3 rounded-full transition-all duration-200 font-medium"
                     style={{
@@ -200,6 +172,34 @@ export default function App() {
                     <Utensils className="w-5 h-5" />
                     <span className="hidden sm:inline">메뉴 관리</span>
                     <span className="sm:hidden">메뉴</span>
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="inventory" 
+                    className="flex items-center justify-center gap-2 px-6 py-3 rounded-full transition-all duration-200 font-medium"
+                    style={{
+                      fontSize: '20px',
+                      fontWeight: 600,
+                      color: isAuthenticated ? '#3182f6' : '#94a3b8',
+                      backgroundColor: isAuthenticated ? '#eff6ff' : '#f1f5f9',
+                      cursor: isAuthenticated ? 'pointer' : 'not-allowed',
+                      opacity: isAuthenticated ? 1 : 0.6
+                    }}
+                    onMouseEnter={(e) => {
+                      if (isAuthenticated) {
+                        e.currentTarget.style.backgroundColor = '#3182f6';
+                        e.currentTarget.style.color = '#ffffff';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (isAuthenticated) {
+                        e.currentTarget.style.backgroundColor = '#eff6ff';
+                        e.currentTarget.style.color = '#3182f6';
+                      }
+                    }}
+                  >
+                    <Package className="w-5 h-5" />
+                    <span className="hidden sm:inline">재고 관리</span>
+                    <span className="sm:hidden">재고</span>
                   </TabsTrigger>
                   <TabsTrigger 
                     value="order" 
@@ -484,17 +484,7 @@ export default function App() {
             animation: 'fadeIn 0.3s ease-in-out'
           }}
         >
-          <Tabs value={activeTab} onValueChange={(value) => handleTabChange(value, 'nav')} className="w-full">
-            <TabsContent 
-              value="inventory" 
-              className="m-0"
-              style={{
-                transition: 'opacity 0.3s ease-in-out',
-                animation: activeTab === 'inventory' ? 'fadeIn 0.3s ease-in-out' : 'none'
-              }}
-            >
-              <InventoryTab activeTab={activeTab} onTabChange={(tab) => handleTabChange(tab, 'nav')} />
-            </TabsContent>
+          <Tabs value={activeTab} onValueChange={(value) => handleTabChange(value, 'nav')} className="w-full">            
             <TabsContent 
               value="menu" 
               className="m-0"
@@ -504,6 +494,16 @@ export default function App() {
               }}
             >
               <MenuTab activeTab={activeTab} onTabChange={(tab) => handleTabChange(tab, 'nav')} />
+            </TabsContent>
+            <TabsContent 
+              value="inventory" 
+              className="m-0"
+              style={{
+                transition: 'opacity 0.3s ease-in-out',
+                animation: activeTab === 'inventory' ? 'fadeIn 0.3s ease-in-out' : 'none'
+              }}
+            >
+              <InventoryTab activeTab={activeTab} onTabChange={(tab) => handleTabChange(tab, 'nav')} />
             </TabsContent>
             <TabsContent 
               value="order" 

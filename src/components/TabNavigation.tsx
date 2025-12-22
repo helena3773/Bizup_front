@@ -7,9 +7,9 @@ interface TabNavigationProps {
   tabId: string;
 }
 
-const tabs = [
-  { id: 'inventory', label: '재고 관리', icon: Package },
+const tabs = [  
   { id: 'menu', label: '메뉴 관리', icon: Utensils },
+  { id: 'inventory', label: '재고 관리', icon: Package },
   { id: 'order', label: '발주 추천', icon: TrendingUp },
   { id: 'outofstock', label: '품절 관리', icon: AlertTriangle },
   { id: 'settings', label: '설정', icon: Settings },
