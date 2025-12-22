@@ -226,7 +226,7 @@ export default function App() {
                     }}
                   >
                     <TrendingUp className="w-5 h-5" />
-                    <span className="hidden sm:inline">발주 추천</span>
+                    <span className="hidden sm:inline">발주 사이트</span>
                     <span className="sm:hidden">발주</span>
                   </TabsTrigger>
                   <TabsTrigger 

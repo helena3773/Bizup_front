@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -625,7 +625,7 @@ export function SettingsTab({ activeTab = 'settings', onTabChange }: SettingsTab
                 <div className="flex items-center justify-end pt-3 pb-3 gap-7">
                   <div className="flex-1">
                     <p className="text-gray-800">발주 알림</p>
-                    <p className="text-gray-600 text-sm">자동 발주 추천 시점이 되면 알려드릴게요.</p>
+                    <p className="text-gray-600 text-sm">자동 발주 사이트 시점이 되면 알려드릴게요.</p>
                   </div>
                   <Switch
                     checked={notifications.order_reminder}
