@@ -712,9 +712,10 @@ export function InventoryTab({ activeTab = 'inventory', onTabChange }: Inventory
                       }
 
                       const displayCategory = item.category === '-' ? '-' : item.category || '-';
+                      const displayQuantityValue = Math.floor(item.quantity);
                       const displayQuantity = placeholderItem
                         ? '-'
-                        : `${item.quantity}${item.unit ? ` ${item.unit}` : ''}`;
+                        : `${displayQuantityValue}${item.unit ? ` ${item.unit}` : ''}`;
                       const displayMinQuantity = placeholderItem
                         ? '-'
                         : `${item.min_quantity}${item.unit ? ` ${item.unit}` : ''}`;
