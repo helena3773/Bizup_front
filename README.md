@@ -11,6 +11,7 @@ front/
 │   ├── lib/
 │   │   └── api.ts          # API 요청 유틸리티
 │   └── components/         # (필요 시) UI 컴포넌트 모음
+├── .env.local              # 로컬 실행 환경
 ├── package.json
 ├── tsconfig.json
 └── README.md               # 프로젝트 문서 (현재 파일)
